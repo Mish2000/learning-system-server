@@ -30,9 +30,15 @@ public class TopicController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TopicResponse>> getAllTopics() {
-        List<TopicResponse> all = topicService.getAllTopics();
-        return ResponseEntity.ok(all);
+    public ResponseEntity<List<TopicResponse>> getTopics(
+            @RequestParam(required = false) Long parentId) {
+        if (parentId == null) {
+            List<TopicResponse> parents = topicService.getTopLevelTopics();
+            return ResponseEntity.ok(parents);
+        } else {
+            List<TopicResponse> subtopics = topicService.getSubTopics(parentId);
+            return ResponseEntity.ok(subtopics);
+        }
     }
 
     @PutMapping("/{id}")
@@ -48,3 +54,4 @@ public class TopicController {
     }
 
 }
+

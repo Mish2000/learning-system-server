@@ -42,6 +42,16 @@ public class TopicService {
         return topics.stream().map(this::mapToResponse).toList();
     }
 
+    public List<TopicResponse> getTopLevelTopics() {
+        List<Topic> parents = topicRepository.findByParentTopicIsNull();
+        return parents.stream().map(this::mapToResponse).toList();
+    }
+
+    public List<TopicResponse> getSubTopics(Long parentId) {
+        List<Topic> subs = topicRepository.findByParentTopicId(parentId);
+        return subs.stream().map(this::mapToResponse).toList();
+    }
+
     public TopicResponse updateTopic(Long id, TopicRequest request) {
         Topic topic = topicRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Topic not found with id " + id));
