@@ -25,6 +25,9 @@ public class AuthController {
 
     @PostMapping("/register")
     public AuthResponse register(@RequestBody RegisterRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username already in use");
+        }
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already in use");
         }
@@ -37,11 +40,11 @@ public class AuthController {
 
         userRepository.save(newUser);
 
-        String token = jwtService.generateToken(newUser.getEmail());
+        String token = jwtService.generateToken(newUser.getUsername());
 
         return new AuthResponse(
                 token,
-                newUser.getEmail(),
+                newUser.getUsername(),
                 newUser.getRole().name()
         );
     }
@@ -50,21 +53,22 @@ public class AuthController {
     public AuthResponse login(@RequestBody AuthRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        request.getUsername(),
                         request.getPassword()
                 )
         );
 
-        User dbUser = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + request.getEmail()));
+        User dbUser = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found: " + request.getUsername()));
 
-        String token = jwtService.generateToken(dbUser.getEmail());
+        String token = jwtService.generateToken(dbUser.getUsername());
 
         return new AuthResponse(
                 token,
-                dbUser.getEmail(),
+                dbUser.getUsername(),
                 dbUser.getRole().name()
         );
     }
 }
+
 
