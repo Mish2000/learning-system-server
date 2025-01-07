@@ -49,7 +49,7 @@ public class UserHistoryService {
 
         adaptiveService.evaluateUserProgress(userId);
 
-        UserDashboardResponse userData = dashboardService.buildUserDashboard(user.getEmail());
+        UserDashboardResponse userData = dashboardService.buildUserDashboard(user.getUsername());
         SseDashboardController.pushUserDash(user.getId(), userData);
 
         if (user.getRole() == Role.ADMIN) {

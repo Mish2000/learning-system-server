@@ -46,7 +46,7 @@ public class SseDashboardController {
             try {
                 User user = userRepository.findById(userId).orElse(null);
                 if (user != null) {
-                    UserDashboardResponse data = dashboardService.buildUserDashboard(user.getEmail());
+                    UserDashboardResponse data = dashboardService.buildUserDashboard(user.getUsername());
                     emitter.send(SseEmitter.event().name("userDashboard").data(data));
                 }
             } catch (IOException e) {
@@ -104,14 +104,14 @@ public class SseDashboardController {
     }
 
     private Long authenticate(String token) {
-        String email = jwtService.extractUsername(token);
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("No user found"));
+        String username = jwtService.extractUsername(token);
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("No user found"));
         return user.getId();
     }
 
     private Long authenticateAdmin(String token) {
-        String email = jwtService.extractUsername(token);
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("No user found"));
+        String username = jwtService.extractUsername(token);
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("No user found"));
         if (!user.getRole().name().equals("ADMIN")) {
             throw new RuntimeException("Not admin");
         }

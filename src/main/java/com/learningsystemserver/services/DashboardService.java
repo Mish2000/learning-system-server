@@ -19,9 +19,9 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final UserQuestionHistoryRepository historyRepository;
 
-    public UserDashboardResponse buildUserDashboard(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("No user found with email: " + email));
+    public UserDashboardResponse buildUserDashboard(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("No user found with username: " + username));
 
         List<UserQuestionHistory> attempts = historyRepository.findAll()
                 .stream()
