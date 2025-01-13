@@ -7,6 +7,8 @@ import com.learningsystemserver.entities.User;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.services.DashboardService;
 import com.learningsystemserver.services.JwtService;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/sse")
 public class SseDashboardController {
@@ -88,9 +91,11 @@ public class SseDashboardController {
                 emitter.send(SseEmitter.event().name("userDashboard").data(data));
             } catch (IOException e) {
                 userEmitters.remove(userId);
+                log.info("SSE user dashboard push failed (client disconnected?) userId={}, error={}", userId, e.getMessage());
             }
         }
     }
+
 
     public static void pushAdminDash(Long userId, AdminDashboardResponse data) {
         SseEmitter emitter = adminEmitters.get(userId);

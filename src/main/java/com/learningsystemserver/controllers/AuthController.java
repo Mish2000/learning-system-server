@@ -5,6 +5,7 @@ import com.learningsystemserver.dtos.AuthResponse;
 import com.learningsystemserver.dtos.RegisterRequest;
 import com.learningsystemserver.entities.Role;
 import com.learningsystemserver.entities.User;
+import com.learningsystemserver.exceptions.AlreadyInUseException;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.services.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import static com.learningsystemserver.exceptions.ErrorMessages.USERNAME_ALREADY_EXIST;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,12 +27,14 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("/register")
-    public AuthResponse register(@RequestBody RegisterRequest request) {
+    public AuthResponse register(@RequestBody RegisterRequest request) throws AlreadyInUseException {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already in use");
+            throw new AlreadyInUseException(
+                    String.format(USERNAME_ALREADY_EXIST.getMessage(), request.getUsername())
+            );
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already in use");
+            throw new AlreadyInUseException("Email already in use");
         }
 
         User newUser = new User();
@@ -41,7 +46,6 @@ public class AuthController {
         userRepository.save(newUser);
 
         String token = jwtService.generateToken(newUser.getUsername());
-
         return new AuthResponse(
                 token,
                 newUser.getUsername(),
@@ -57,12 +61,10 @@ public class AuthController {
                         request.getPassword()
                 )
         );
-
         User dbUser = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found: " + request.getUsername()));
 
         String token = jwtService.generateToken(dbUser.getUsername());
-
         return new AuthResponse(
                 token,
                 dbUser.getUsername(),
@@ -70,5 +72,6 @@ public class AuthController {
         );
     }
 }
+
 
 
