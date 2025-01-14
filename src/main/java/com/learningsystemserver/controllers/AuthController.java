@@ -7,15 +7,19 @@ import com.learningsystemserver.entities.Role;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.exceptions.AlreadyInUseException;
 import com.learningsystemserver.exceptions.InvalidInputException;
+import com.learningsystemserver.exceptions.UnauthorizedException;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.services.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import static com.learningsystemserver.exceptions.ErrorMessages.USERNAME_ALREADY_EXIST;
+import static com.learningsystemserver.exceptions.ErrorMessages.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -35,7 +39,9 @@ public class AuthController {
             );
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new AlreadyInUseException("Email already in use");
+            throw new AlreadyInUseException(
+                    String.format(EMAIL_ALREADY_EXIST.getMessage(), request.getEmail())
+            );
         }
 
         User newUser = new User();
@@ -55,7 +61,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody AuthRequest request) throws InvalidInputException {
+    public AuthResponse login(@RequestBody AuthRequest request) throws  InvalidInputException {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -63,7 +69,10 @@ public class AuthController {
                 )
         );
         User dbUser = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new InvalidInputException("User not found: " + request.getUsername()));
+                .orElseThrow(() -> new InvalidInputException(
+                        String.format(USERNAME_DOES_NOT_EXIST.getMessage(), request.getUsername())
+                ));
+
 
         String token = jwtService.generateToken(dbUser.getUsername());
         return new AuthResponse(
