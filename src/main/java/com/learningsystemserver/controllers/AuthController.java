@@ -6,6 +6,7 @@ import com.learningsystemserver.dtos.RegisterRequest;
 import com.learningsystemserver.entities.Role;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.exceptions.AlreadyInUseException;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.services.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -54,7 +55,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody AuthRequest request) {
+    public AuthResponse login(@RequestBody AuthRequest request) throws InvalidInputException {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -62,7 +63,7 @@ public class AuthController {
                 )
         );
         User dbUser = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found: " + request.getUsername()));
+                .orElseThrow(() -> new InvalidInputException("User not found: " + request.getUsername()));
 
         String token = jwtService.generateToken(dbUser.getUsername());
         return new AuthResponse(
