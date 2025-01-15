@@ -8,5 +8,5 @@ public class TopicResponse {
     private String name;
     private String description;
     private String difficultyLevel;
-    private Long parentId; // or null if top-level
+    private Long parentId;
 }
