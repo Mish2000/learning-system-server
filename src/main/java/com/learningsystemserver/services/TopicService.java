@@ -3,12 +3,16 @@ package com.learningsystemserver.services;
 import com.learningsystemserver.dtos.TopicRequest;
 import com.learningsystemserver.dtos.TopicResponse;
 import com.learningsystemserver.entities.Topic;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+
+import static com.learningsystemserver.exceptions.ErrorMessages.QUESTION_DOES_NOT_EXIST;
+import static com.learningsystemserver.exceptions.ErrorMessages.TOPIC_DOES_NOT_EXIST;
 
 @Service
 @RequiredArgsConstructor
@@ -31,9 +35,11 @@ public class TopicService {
         return mapToResponse(saved);
     }
 
-    public TopicResponse getTopic(Long id) {
+    public TopicResponse getTopic(Long id) throws InvalidInputException {
         Topic topic = topicRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Topic not found with id " + id));
+                .orElseThrow(() -> new InvalidInputException(
+                        String.format(TOPIC_DOES_NOT_EXIST.getMessage(), id)
+                ));
         return mapToResponse(topic);
     }
 
@@ -52,9 +58,11 @@ public class TopicService {
         return subs.stream().map(this::mapToResponse).toList();
     }
 
-    public TopicResponse updateTopic(Long id, TopicRequest request) {
+    public TopicResponse updateTopic(Long id, TopicRequest request) throws InvalidInputException {
         Topic topic = topicRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Topic not found with id " + id));
+                .orElseThrow(() -> new InvalidInputException(
+                        String.format(TOPIC_DOES_NOT_EXIST.getMessage(), id)
+                ));
 
         topic.setName(request.getName());
         topic.setDescription(request.getDescription());

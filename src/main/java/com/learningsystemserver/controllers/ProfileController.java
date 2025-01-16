@@ -3,7 +3,7 @@ package com.learningsystemserver.controllers;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.requests.UpdateProfileRequest;
-import com.learningsystemserver.responses.ProfileResponse;
+import com.learningsystemserver.dtos.ProfileResponse;
 import com.learningsystemserver.services.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;

@@ -7,6 +7,7 @@ import com.learningsystemserver.entities.GeneratedQuestion;
 import com.learningsystemserver.entities.Role;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.entities.UserQuestionHistory;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.GeneratedQuestionRepository;
 import com.learningsystemserver.repositories.UserQuestionHistoryRepository;
 import com.learningsystemserver.repositories.UserRepository;
@@ -27,7 +28,7 @@ public class UserHistoryService {
     private final DashboardService dashboardService;
 
     @Transactional
-    public void logAttempt(Long userId, Long questionId, boolean correct, String userAnswer, Long timeTakenSeconds) {
+    public void logAttempt(Long userId, Long questionId, boolean correct, String userAnswer, Long timeTakenSeconds) throws InvalidInputException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
         GeneratedQuestion question = questionRepository.findById(questionId)

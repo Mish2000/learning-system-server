@@ -4,13 +4,17 @@ import com.learningsystemserver.dtos.AdminDashboardResponse;
 import com.learningsystemserver.dtos.UserDashboardResponse;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.entities.UserQuestionHistory;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserQuestionHistoryRepository;
 import com.learningsystemserver.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.learningsystemserver.exceptions.ErrorMessages.USERNAME_DOES_NOT_EXIST;
 
 @Service
 @RequiredArgsConstructor
@@ -19,14 +23,16 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final UserQuestionHistoryRepository historyRepository;
 
-    public UserDashboardResponse buildUserDashboard(String username) {
+    public UserDashboardResponse buildUserDashboard(String username) throws InvalidInputException {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("No user found with username: " + username));
+                .orElseThrow(() -> new InvalidInputException(
+                        String.format(USERNAME_DOES_NOT_EXIST.getMessage(), username)
+                ));
 
         List<UserQuestionHistory> attempts = historyRepository.findAll()
                 .stream()
                 .filter(h -> h.getUser().getId().equals(user.getId()))
-                .collect(Collectors.toList());
+                .toList();
 
         long totalAttempts = attempts.size();
         long correctAttempts = attempts.stream().filter(UserQuestionHistory::isCorrect).count();

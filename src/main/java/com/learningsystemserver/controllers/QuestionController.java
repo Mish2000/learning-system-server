@@ -65,7 +65,7 @@ public class QuestionController {
     }
 
     @GetMapping("/{id}")
-    public QuestionResponse getQuestion(@PathVariable Long id) {
+    public QuestionResponse getQuestion(@PathVariable Long id) throws InvalidInputException {
         GeneratedQuestion q = questionService.getQuestionById(id);
         return toResponse(q);
     }

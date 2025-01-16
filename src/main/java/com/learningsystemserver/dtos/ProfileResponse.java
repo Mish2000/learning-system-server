@@ -1,4 +1,4 @@
-package com.learningsystemserver.responses;
+package com.learningsystemserver.dtos;
 
 import lombok.Builder;
 import lombok.Data;

@@ -4,6 +4,7 @@ package com.learningsystemserver.controllers;
 import com.learningsystemserver.dtos.AdminDashboardResponse;
 import com.learningsystemserver.dtos.UserDashboardResponse;
 import com.learningsystemserver.entities.User;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.services.DashboardService;
 import com.learningsystemserver.services.JwtService;
@@ -52,7 +53,7 @@ public class SseDashboardController {
                     UserDashboardResponse data = dashboardService.buildUserDashboard(user.getUsername());
                     emitter.send(SseEmitter.event().name("userDashboard").data(data));
                 }
-            } catch (IOException e) {
+            } catch (IOException | InvalidInputException e) {
                 userEmitters.remove(userId);
             }
         }).start();

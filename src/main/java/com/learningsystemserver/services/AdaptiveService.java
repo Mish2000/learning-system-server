@@ -3,12 +3,13 @@ package com.learningsystemserver.services;
 import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.entities.UserQuestionHistory;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserQuestionHistoryRepository;
 import com.learningsystemserver.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
+import static com.learningsystemserver.exceptions.ErrorMessages.USER_ID_DOES_NOT_EXIST;
 
 @Service
 @RequiredArgsConstructor
@@ -17,9 +18,11 @@ public class AdaptiveService {
     private final UserRepository userRepository;
     private final UserQuestionHistoryRepository historyRepository;
 
-    public void evaluateUserProgress(Long userId) {
+    public void evaluateUserProgress(Long userId) throws InvalidInputException {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new InvalidInputException(
+                        String.format(USER_ID_DOES_NOT_EXIST.getMessage(), userId)
+                ));
 
         List<UserQuestionHistory> lastAttempts = historyRepository
                 .findAll()
@@ -54,7 +57,6 @@ public class AdaptiveService {
 
     private DifficultyLevel getLowerDifficulty(DifficultyLevel d) {
         return switch (d) {
-            case EASY -> DifficultyLevel.BASIC;
             case MEDIUM -> DifficultyLevel.EASY;
             case ADVANCED -> DifficultyLevel.MEDIUM;
             case EXPERT -> DifficultyLevel.ADVANCED;
@@ -67,7 +69,6 @@ public class AdaptiveService {
             case BASIC -> DifficultyLevel.EASY;
             case EASY -> DifficultyLevel.MEDIUM;
             case MEDIUM -> DifficultyLevel.ADVANCED;
-            case ADVANCED -> DifficultyLevel.EXPERT;
             default -> DifficultyLevel.EXPERT;
         };
     }

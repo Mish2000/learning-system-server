@@ -3,12 +3,15 @@ package com.learningsystemserver.services;
 import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.GeneratedQuestion;
 import com.learningsystemserver.entities.Topic;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.GeneratedQuestionRepository;
 import com.learningsystemserver.repositories.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Random;
+
+import static com.learningsystemserver.exceptions.ErrorMessages.QUESTION_DOES_NOT_EXIST;
 
 @Service
 @RequiredArgsConstructor
@@ -92,8 +95,8 @@ public class QuestionGeneratorService {
     }
 
     private GeneratedQuestion createFractionsQuestion(Topic topic, DifficultyLevel difficulty) {
-        int num1 = random.nextInt(9) + 1; // 1..9
-        int den1 = random.nextInt(9) + 1; // 1..9
+        int num1 = random.nextInt(9) + 1;
+        int den1 = random.nextInt(9) + 1;
         int num2 = random.nextInt(9) + 1;
         int den2 = random.nextInt(9) + 1;
 
@@ -164,16 +167,12 @@ public class QuestionGeneratorService {
     }
 
     private int[] getRangeForDifficulty(DifficultyLevel difficulty) {
-        switch (difficulty) {
-            case EASY:
-                return new int[]{1, 30};
-            case MEDIUM:
-                return new int[]{1, 100};
-            case ADVANCED:
-                return new int[]{1, 1000};
-            default:
-                return new int[]{1, 10};
-        }
+        return switch (difficulty) {
+            case EASY -> new int[]{1, 30};
+            case MEDIUM -> new int[]{1, 100};
+            case ADVANCED -> new int[]{1, 1000};
+            default -> new int[]{1, 10};
+        };
     }
 
     private GeneratedQuestion saveQuestion(
@@ -194,9 +193,11 @@ public class QuestionGeneratorService {
         return questionRepository.save(generated);
     }
 
-    public GeneratedQuestion getQuestionById(Long questionId) {
+    public GeneratedQuestion getQuestionById(Long questionId) throws InvalidInputException {
         return questionRepository.findById(questionId)
-                .orElseThrow(() -> new RuntimeException("Question not found with ID: " + questionId));
+                .orElseThrow(() -> new InvalidInputException(
+                        String.format(QUESTION_DOES_NOT_EXIST.getMessage(), questionId)
+                ));
     }
 }
 
