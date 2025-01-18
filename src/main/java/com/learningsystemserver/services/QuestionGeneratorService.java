@@ -41,11 +41,18 @@ public class QuestionGeneratorService {
             return createDivisionQuestion(topic, difficultyLevel);
         } else if (nameLower.contains("fractions")) {
             return createFractionsQuestion(topic, difficultyLevel);
-        } else if (nameLower.contains("geometry")) {
-            return createGeometryQuestion(topic, difficultyLevel);
+        } else if (nameLower.contains("rectangle")) {
+            return createRectangleQuestion(topic, difficultyLevel);
+        } else if (nameLower.contains("circle")) {
+            return createCircleQuestion(topic, difficultyLevel);
+        } else if (nameLower.contains("triangle")) {
+            return createTriangleQuestion(topic, difficultyLevel);
+        } else if (nameLower.contains("polygon")) {
+            return createPolygonQuestion(topic, difficultyLevel);
         } else {
             return createAdditionQuestion(topic, difficultyLevel);
         }
+
     }
 
     private GeneratedQuestion createAdditionQuestion(Topic topic, DifficultyLevel difficulty) {
@@ -119,51 +126,62 @@ public class QuestionGeneratorService {
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
-    private GeneratedQuestion createGeometryQuestion(Topic topic, DifficultyLevel difficulty) {
-        int shapeType = random.nextInt(2);
+    private GeneratedQuestion createRectangleQuestion(Topic topic, DifficultyLevel difficulty) {
+        int length = random.nextInt(20) + 1;
+        int width = random.nextInt(20) + 1;
+        int area = length * width;
+        int perimeter = 2 * (length + width);
 
-        if (shapeType == 0) {
-            int length = random.nextInt(9) + 1;
-            int width = random.nextInt(9) + 1;
-            boolean doArea = random.nextBoolean();
+        String questionText = "Rectangle with length " + length + " and width " + width +
+                ". Find its area and perimeter.";
+        String solutionSteps = "1) Area = length × width = " + length + " × " + width + " = " + area +
+                "\n2) Perimeter = 2 × (length + width) = 2 × (" + length + " + " + width + ") = " + perimeter;
+        String correctAnswer = "Area: " + area + ", Perimeter: " + perimeter;
 
-            if (doArea) {
-                int area = length * width;
-                String questionText = "A rectangle has length=" + length + " and width=" + width
-                        + ". What is its area?";
-                String solutionSteps = "1) Area of rectangle = length × width"
-                        + "\n2) So: " + length + " × " + width + " = " + area + ".";
-                return saveQuestion(questionText, solutionSteps, String.valueOf(area), topic, difficulty);
-            } else {
-                int perimeter = 2 * (length + width);
-                String questionText = "A rectangle has length=" + length + " and width=" + width
-                        + ". What is its perimeter?";
-                String solutionSteps = "1) Perimeter of rectangle = 2 × (length + width)"
-                        + "\n2) So: 2 × (" + length + " + " + width + ") = " + perimeter + ".";
-                return saveQuestion(questionText, solutionSteps, String.valueOf(perimeter), topic, difficulty);
-            }
-        } else {
-            int radius = random.nextInt(9) + 1;
-            boolean doArea = random.nextBoolean();
-            double pi = 3.14;
+        return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
+    }
 
-            if (doArea) {
-                double area = pi * radius * radius;
-                String questionText = "A circle has radius=" + radius + ". What is its area?";
-                String solutionSteps = "1) Area of circle = π × r²"
-                        + "\n2) r² = " + radius + " × " + radius + " = " + (radius * radius)
-                        + "\n3) So area ≈ 3.14 × " + (radius * radius)
-                        + " = " + area + ".";
-                return saveQuestion(questionText, solutionSteps, String.format("%.2f", area), topic, difficulty);
-            } else {
-                double circumference = 2 * pi * radius;
-                String questionText = "A circle has radius=" + radius + ". What is its circumference?";
-                String solutionSteps = "1) Circumference of circle = 2 × π × r"
-                        + "\n2) So circumference ≈ 2 × 3.14 × " + radius
-                        + " = " + circumference + ".";
-                return saveQuestion(questionText, solutionSteps, String.format("%.2f", circumference), topic, difficulty);
-            }
-        }
+    private GeneratedQuestion createCircleQuestion(Topic topic, DifficultyLevel difficulty) {
+        int radius = random.nextInt(10) + 1;
+        double pi = 3.14;
+        double area = pi * radius * radius;
+        double circumference = 2 * pi * radius;
+
+        String questionText = "Circle with radius " + radius + ". Find its area and circumference.";
+        String solutionSteps = "1) Area = π × r² = 3.14 × " + radius + "² = " + String.format("%.2f", area) +
+                "\n2) Circumference = 2 × π × r = 2 × 3.14 × " + radius + " = " + String.format("%.2f", circumference);
+        String correctAnswer = "Area: " + String.format("%.2f", area) + ", Circumference: " + String.format("%.2f", circumference);
+
+        return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
+    }
+
+    private GeneratedQuestion createTriangleQuestion(Topic topic, DifficultyLevel difficulty) {
+        int base = random.nextInt(20) + 1;
+        int height = random.nextInt(20) + 1;
+        double area = 0.5 * base * height;
+        double hypotenuse = Math.sqrt(base * base + height * height);
+
+        String questionText = "Right triangle with base " + base + " and height " + height +
+                ". Find its area and hypotenuse.";
+        String solutionSteps = "1) Area = ½ × base × height = ½ × " + base + " × " + height + " = " + String.format("%.2f", area) +
+                "\n2) Hypotenuse = √(base² + height²) = √(" + base + "² + " + height + "²) = " + String.format("%.2f", hypotenuse);
+        String correctAnswer = "Area: " + String.format("%.2f", area) + ", Hypotenuse: " + String.format("%.2f", hypotenuse);
+
+        return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
+    }
+
+    private GeneratedQuestion createPolygonQuestion(Topic topic, DifficultyLevel difficulty) {
+        int side = random.nextInt(10) + 1;
+        double apothem = side / (2 * Math.tan(Math.PI / 5));
+        double area = (5 * side * apothem) / 2;
+
+        String questionText = "Regular pentagon with side length " + side +
+                ". Find its approximate area.";
+        String solutionSteps = "1) Apothem = side / (2 × tan(π/5)) = " + String.format("%.2f", apothem) +
+                "\n2) Area = (5 × side × apothem) / 2 = (5 × " + side + " × " + String.format("%.2f", apothem) + ") / 2 = " + String.format("%.2f", area);
+        String correctAnswer = "Approximate Area: " + String.format("%.2f", area);
+
+        return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
     private int[] getRangeForDifficulty(DifficultyLevel difficulty) {
@@ -199,5 +217,6 @@ public class QuestionGeneratorService {
                         String.format(QUESTION_DOES_NOT_EXIST.getMessage(), questionId)
                 ));
     }
+
 }
 

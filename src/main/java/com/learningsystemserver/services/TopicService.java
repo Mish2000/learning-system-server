@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
-import static com.learningsystemserver.exceptions.ErrorMessages.QUESTION_DOES_NOT_EXIST;
 import static com.learningsystemserver.exceptions.ErrorMessages.TOPIC_DOES_NOT_EXIST;
 
 @Service
@@ -41,11 +40,6 @@ public class TopicService {
                         String.format(TOPIC_DOES_NOT_EXIST.getMessage(), id)
                 ));
         return mapToResponse(topic);
-    }
-
-    public List<TopicResponse> getAllTopics() {
-        List<Topic> topics = topicRepository.findAll();
-        return topics.stream().map(this::mapToResponse).toList();
     }
 
     public List<TopicResponse> getTopLevelTopics() {

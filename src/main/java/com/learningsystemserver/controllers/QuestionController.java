@@ -51,7 +51,15 @@ public class QuestionController {
                 ));
 
         GeneratedQuestion q = questionService.getQuestionById(request.getQuestionId());
-        boolean isCorrect = q.getCorrectAnswer().equalsIgnoreCase(request.getUserAnswer());
+
+        boolean isCorrect;
+        String topicName = q.getTopic() != null ? q.getTopic().getName().toLowerCase() : "";
+        if(topicName.contains("rectangle") || topicName.contains("circle") ||
+                topicName.contains("triangle") || topicName.contains("polygon")) {
+            isCorrect = checkFlexibleAnswer(q.getCorrectAnswer(), request.getUserAnswer());
+        } else {
+            isCorrect = q.getCorrectAnswer().equalsIgnoreCase(request.getUserAnswer());
+        }
 
         userHistoryService.logAttempt(
                 user.getId(),
@@ -63,6 +71,19 @@ public class QuestionController {
 
         return new SubmitAnswerResponse(isCorrect, q.getCorrectAnswer(), q.getSolutionSteps());
     }
+
+    private boolean checkFlexibleAnswer(String correctAnswer, String userAnswer) {
+        correctAnswer = correctAnswer.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
+        userAnswer = userAnswer.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
+        String[] correctParts = correctAnswer.split("\\s+");
+        for(String part: correctParts) {
+            if(!userAnswer.contains(part)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     @GetMapping("/{id}")
     public QuestionResponse getQuestion(@PathVariable Long id) throws InvalidInputException {

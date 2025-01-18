@@ -34,6 +34,19 @@ public class TopicInitializer implements CommandLineRunner {
 
         createTopicIfNotExists("Geometry", "Basic shapes and geometry fundamentals",
                 DifficultyLevel.MEDIUM, null);
+
+        createTopicIfNotExists("Rectangle", "Problems related to rectangles",
+                DifficultyLevel.EASY, "Geometry");
+
+        createTopicIfNotExists("Circle", "Problems related to circles",
+                DifficultyLevel.EASY, "Geometry");
+
+        createTopicIfNotExists("Triangle", "Problems related to triangles",
+                DifficultyLevel.EASY, "Geometry");
+
+        createTopicIfNotExists("Polygon", "Problems related to polygons",
+                DifficultyLevel.EASY, "Geometry");
+
     }
 
     private void createTopicIfNotExists(String name,
