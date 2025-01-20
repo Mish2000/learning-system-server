@@ -55,6 +55,21 @@ public class QuestionGeneratorService {
 
     }
 
+    private String simplifyA(int a, int b, int answer) {
+        int aPart1 = (a - 5);
+        int aPart2 = a - aPart1;
+        int bPart1 = (b - 5);
+        int bPart2 = b - bPart1;
+        int midAnswer = aPart1 + bPart1;
+        if ((a > 5 && a < 10) && (b > 5 && b < 10)) {
+            return ("step 1: brake the numbers apart: " + a + " will part to " + aPart1 + " + " + aPart2 + " , " + b + " will part to: " + bPart1 + " and " + bPart2 + "\n" +
+                    "step 2: add " + aPart2 + " + " + bPart2 + " = 10" + " and we also add " + aPart1 + " + " + bPart1 + " = " + midAnswer +
+                    "\n step 3: we are taking the 10 + " + midAnswer + " = " + answer + " \n ");
+        } else {
+            return (" take " + a + " add " + b + " and the result is: "+answer);
+        }
+    }
+
     private GeneratedQuestion createAdditionQuestion(Topic topic, DifficultyLevel difficulty) {
         int[] range = getRangeForDifficulty(difficulty);
         int a = random.nextInt(range[1] - range[0] + 1) + range[0];
@@ -62,8 +77,8 @@ public class QuestionGeneratorService {
         int answer = a + b;
 
         String questionText = a + " + " + b + " = ?";
-        String solutionSteps = "1) Add " + a + " and " + b
-                + "\n2) The result is " + answer + ".";
+        String solutionSteps = simplifyA(a, b, answer);
+
 
         return saveQuestion(questionText, solutionSteps, String.valueOf(answer), topic, difficulty);
     }
