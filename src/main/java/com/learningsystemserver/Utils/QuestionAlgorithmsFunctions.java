@@ -73,7 +73,7 @@ public class QuestionAlgorithmsFunctions {
             int totalOnes = aOnes + bOnes;
             int totalTens = aTens + bTens;
             String step3 = "Step 3: Now combine all the parts: " + totalTens + " + " + totalOnes + " = " + answer;
-            return step1 + "\n" + step2 + "\n" + step3;
+            return step1 + "\n\n" + step2 + "\n" + step3;
         }
     }
 
