@@ -115,15 +115,7 @@ public class QuestionGeneratorService {
             int totalOnes = aOnes + bOnes;
             int totalTens = aTens + bTens;
             int totalHundreds = aHundreds + bHundreds;
-            if (totalOnes >= 10) {
-                totalTens += totalOnes / 10;
-                totalOnes %= 10;
-            }
-            if (totalTens >= 100) {
-                totalHundreds += totalTens / 100;
-                totalTens %= 100;
-            }
-            String step3 = "Step 3: Now combine all the parts: " + totalHundreds + " (hundreds) + " + totalTens + " (tens) + " + totalOnes + " (ones) = " + answer;
+            String step3 = "Step 3: Now combine all the parts: " + totalHundreds + " + " + (aTens + bTens) + " + " + (aOnes + bOnes) + " = " + answer;
             return step1 + "\n" + step2 + "\n" + step3;
         } else {
             step2 = "Step 2: Combine the parts:\n";
@@ -131,10 +123,6 @@ public class QuestionGeneratorService {
             step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";
             int totalOnes = aOnes + bOnes;
             int totalTens = aTens + bTens;
-            if (totalOnes >= 10) {
-                totalTens += totalOnes / 10;
-                totalOnes %= 10;
-            }
             String step3 = "Step 3: Now combine all the parts: " + totalTens + " + " + totalOnes + " = " + answer;
             return step1 + "\n" + step2 + "\n" + step3;
         }
