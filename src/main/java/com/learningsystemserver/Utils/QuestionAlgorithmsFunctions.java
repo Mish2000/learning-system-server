@@ -2,9 +2,9 @@ package com.learningsystemserver.Utils;
 
 public class QuestionAlgorithmsFunctions {
 
-    //.......................................addition--------------------------------------------------------------------
+    //.......................................Addition Simplification................................................................
 
-    public static String simplify(int a, int b, int answer) {
+    public static String simplifyAddition(int a, int b, int answer) {
         boolean aIsNegative = a < 0;
         boolean bIsNegative = b < 0;
 
@@ -25,11 +25,11 @@ public class QuestionAlgorithmsFunctions {
         } else if (posB % 10 == 0 && posA < 10) {
             return "To add " + a + " and " + b + ", simply add " + a + " to " + b + " to get " + answer + ".";
         } else {
-            return simplifyMultiDigit(a, b, answer, aIsNegative, bIsNegative);
+            return simplifyMultiDigitAddition(a, b, answer, aIsNegative, bIsNegative);
         }
     }
 
-    private static String simplifyMultiDigit(int a, int b, int answer, boolean aIsNegative, boolean bIsNegative) {
+    private static String simplifyMultiDigitAddition(int a, int b, int answer, boolean aIsNegative, boolean bIsNegative) {
         String aParts = getNumberParts(a, aIsNegative);
         String bParts = getNumberParts(b, bIsNegative);
 
@@ -41,7 +41,7 @@ public class QuestionAlgorithmsFunctions {
             }
             if (Math.abs(b) < 10 && Math.abs(a) >= 10) {
                 if (Math.abs(a) + Math.abs(b) < 100) {
-                    return "To add " + a + " and " + b + ", simply add " + b + " to " + a + " to get " + answer + ".";
+                    return "To add " + b + " to " + a + ", simply add " + b + " to " + a + " to get " + answer + ".";
                 }
             }
         }
@@ -82,10 +82,10 @@ public class QuestionAlgorithmsFunctions {
         int tens = ((Math.abs(num) % 100) / 10) * 10;
         int ones = Math.abs(num) % 10;
 
-        String sign = isNegative? "-" : "";
-        String hundredsString = hundreds > 0? hundreds + " (hundreds)" : "";
-        String tensString = tens > 0? tens + " (tens)" : "";
-        String onesString = ones > 0? ones + " (ones)" : "";
+        String sign = isNegative ? "-" : "";
+        String hundredsString = hundreds > 0 ? hundreds + " (hundreds)" : "";
+        String tensString = tens > 0 ? tens + " (tens)" : "";
+        String onesString = ones > 0 ? ones + " (ones)" : "";
 
         String result = sign + Math.abs(num) + " = ";
         if (!hundredsString.isEmpty()) {
@@ -98,7 +98,7 @@ public class QuestionAlgorithmsFunctions {
             result += tensString;
         }
         if (!onesString.isEmpty()) {
-            if (!hundredsString.isEmpty() ||!tensString.isEmpty()) {
+            if (!hundredsString.isEmpty() || !tensString.isEmpty()) {
                 result += " + ";
             }
             result += onesString;
@@ -107,16 +107,90 @@ public class QuestionAlgorithmsFunctions {
         return result;
     }
 
-    //.......................................reduction--------------------------------------------------------------------
+    //.......................................Fraction Simplification................................................................
 
+    public static String simplifyFractions(int num1, int den1, int num2, int den2, int sumNum, int commonDen) {
+        int gcd = findGCD(sumNum, commonDen);
+        int simplifiedNum = sumNum / gcd;
+        int simplifiedDen = commonDen / gcd;
 
+        return "1) Common denominator: " + den1 + " * " + den2 + " = " + commonDen
+                + "\n2) Convert each fraction: " + num1 + "/" + den1
+                + " = " + (num1 * den2) + "/" + commonDen + " and " + num2 + "/" + den2
+                + " = " + (num2 * den1) + "/" + commonDen
+                + "\n3) Add numerators: " + (num1 * den2) + " + " + (num2 * den1) + " = " + sumNum
+                + "\n4) Final fraction: " + sumNum + "/" + commonDen
+                + " which simplifies to " + simplifiedNum + "/" + simplifiedDen + ".";
+    }
 
-    //.......................................divide--------------------------------------------------------------------
+    //.......................................Division Simplification................................................................
 
+    public static String simplifyDivision(int a, int b, int answer) {
+        boolean aIsNegative = a < 0;
+        boolean bIsNegative = b < 0;
 
+        if (b == 0) {
+            return "Division by zero is undefined.";
+        }
 
-    //.......................................multiply--------------------------------------------------------------------
+        String sign = (aIsNegative ^ bIsNegative) ? "-" : "";
 
+        String step1 = "Step 1: Divide the numbers: " + Math.abs(a) + " ÷ " + Math.abs(b) + " = " + answer;
+        String step2 = "Step 2: Apply the sign: " + sign + answer;
 
+        return step1 + "\n" + step2;
+    }
 
+    //.......................................Multiplication Simplification................................................................
+
+    public static String simplifyMultiplication(int a, int b, int answer) {
+        boolean aIsNegative = a < 0;
+        boolean bIsNegative = b < 0;
+
+        int posA = Math.abs(a);
+        int posB = Math.abs(b);
+
+        String sign = (aIsNegative ^ bIsNegative) ? "-" : "";
+
+        String step1 = "Step 1: Multiply the numbers: " + posA + " × " + posB + " = " + (posA * posB);
+        String step2 = "Step 2: Apply the sign: " + sign + (posA * posB) + " = " + answer;
+
+        return step1 + "\n" + step2;
+    }
+
+    //.......................................Rectangle Simplification................................................................
+
+    public static String simplifyRectangle(int length, int width, int area, int perimeter) {
+        return "1) Area = length × width = " + length + " × " + width + " = " + area
+                + "\n2) Perimeter = 2 × (length + width) = 2 × (" + length + " + " + width + ") = " + perimeter + ".";
+    }
+
+    //.......................................Circle Simplification................................................................
+
+    public static String simplifyCircle(int radius, double area, double circumference) {
+        return "1) Area = π × r² = 3.14 × " + radius + "² = " + String.format("%.2f", area)
+                + "\n2) Circumference = 2 × π × r = 2 × 3.14 × " + radius + " = " + String.format("%.2f", circumference) + ".";
+    }
+
+    //.......................................Triangle Simplification................................................................
+
+    public static String simplifyTriangle(int base, int height, double area, double hypotenuse) {
+        return "1) Area = ½ × base × height = ½ × " + base + " × " + height + " = " + String.format("%.2f", area)
+                + "\n2) Hypotenuse = √(base² + height²) = √(" + base + "² + " + height + "²) = " + String.format("%.2f", hypotenuse) + ".";
+    }
+
+    //.......................................Polygon Simplification................................................................
+
+    public static String simplifyPolygon(int side, double apothem, double area) {
+        return "1) Apothem = side / (2 × tan(π/5)) = " + side + " / (2 × tan(π/5)) = " + String.format("%.2f", apothem)
+                + "\n2) Area = (5 × side × apothem) / 2 = (5 × " + side + " × " + String.format("%.2f", apothem) + ") / 2 = " + String.format("%.2f", area) + ".";
+    }
+
+    //.......................................Helper Methods................................................................
+
+    private static int findGCD(int a, int b) {
+        if (b == 0) return a;
+        return findGCD(b, a % b);
+    }
 }
+

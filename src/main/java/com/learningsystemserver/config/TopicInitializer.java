@@ -23,6 +23,9 @@ public class TopicInitializer implements CommandLineRunner {
         createTopicIfNotExists("Addition", "Adding numbers",
                 DifficultyLevel.EASY, "Arithmetic");
 
+        createTopicIfNotExists("Subtraction", "Subtracting numbers",
+                DifficultyLevel.EASY, "Arithmetic");
+
         createTopicIfNotExists("Multiplication", "Multiplying numbers",
                 DifficultyLevel.EASY, "Arithmetic");
 
