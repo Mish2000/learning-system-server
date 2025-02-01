@@ -25,17 +25,16 @@ public class QuestionGeneratorService {
         if (topicId != null) {
             topic = topicRepository.findById(topicId).orElse(null);
         }
-
         if (topic == null) {
             return createAdditionQuestion(null, difficultyLevel);
         }
-
         String nameLower = topic.getName().toLowerCase();
         String topicType = determineTopicType(nameLower);
-
         switch (topicType) {
             case "addition":
                 return createAdditionQuestion(topic, difficultyLevel);
+            case "subtraction":
+                return createSubtractionQuestion(topic, difficultyLevel);
             case "multiplication":
                 return createMultiplicationQuestion(topic, difficultyLevel);
             case "division":
@@ -57,6 +56,7 @@ public class QuestionGeneratorService {
 
     private String determineTopicType(String nameLower) {
         if (nameLower.contains("addition")) return "addition";
+        if (nameLower.contains("subtraction")) return "subtraction";
         if (nameLower.contains("multiplication")) return "multiplication";
         if (nameLower.contains("division")) return "division";
         if (nameLower.contains("fractions")) return "fractions";
@@ -72,10 +72,23 @@ public class QuestionGeneratorService {
         int a = getRandomNumber(range);
         int b = getRandomNumber(range);
         int answer = a + b;
-
         String questionText = a + " + " + b + " = ?";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyAddition(a, b, answer);
+        return saveQuestion(questionText, solutionSteps, String.valueOf(answer), topic, difficulty);
+    }
 
+    private GeneratedQuestion createSubtractionQuestion(Topic topic, DifficultyLevel difficulty) {
+        int[] range = getRangeForDifficulty(difficulty);
+        int a = getRandomNumber(range);
+        int b = getRandomNumber(range);
+        if (a < b) {
+            int temp = a;
+            a = b;
+            b = temp;
+        }
+        int answer = a - b;
+        String questionText = a + " - " + b + " = ?";
+        String solutionSteps = "Subtract " + b + " from " + a + " to get " + answer + ".";
         return saveQuestion(questionText, solutionSteps, String.valueOf(answer), topic, difficulty);
     }
 
@@ -84,10 +97,8 @@ public class QuestionGeneratorService {
         int a = getRandomNumber(range);
         int b = getRandomNumber(range);
         int answer = a * b;
-
         String questionText = a + " × " + b + " = ?";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyMultiplication(a, b, answer);
-
         return saveQuestion(questionText, solutionSteps, String.valueOf(answer), topic, difficulty);
     }
 
@@ -95,18 +106,14 @@ public class QuestionGeneratorService {
         int[] range = getRangeForDifficulty(difficulty);
         int b;
         int a;
-
         do {
             b = getRandomNumber(range);
         } while (b == 0);
-
         int multiplier = getRandomNumber(range);
         a = b * multiplier;
         int answer = a / b;
-
         String questionText = a + " ÷ " + b + " = ?";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyDivision(a, b, answer);
-
         return saveQuestion(questionText, solutionSteps, String.valueOf(answer), topic, difficulty);
     }
 
@@ -115,17 +122,13 @@ public class QuestionGeneratorService {
         int den1 = random.nextInt(9) + 1;
         int num2 = random.nextInt(9) + 1;
         int den2 = random.nextInt(9) + 1;
-
         int commonDen = den1 * den2;
         int newNum1 = num1 * den2;
         int newNum2 = num2 * den1;
         int sumNum = newNum1 + newNum2;
-
         String questionText = "(" + num1 + "/" + den1 + ") + (" + num2 + "/" + den2 + ") = ?";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyFractions(num1, den1, num2, den2, sumNum, commonDen);
-
         String correctAnswer = sumNum + "/" + commonDen;
-
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -134,12 +137,9 @@ public class QuestionGeneratorService {
         int width = getRandomNumber(new int[]{1, 20});
         int area = length * width;
         int perimeter = 2 * (length + width);
-
         String questionText = "Rectangle with length " + length + " and width " + width + ". Find its area and perimeter.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyRectangle(length, width, area, perimeter);
-
         String correctAnswer = "Area: " + area + ", Perimeter: " + perimeter;
-
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -148,12 +148,9 @@ public class QuestionGeneratorService {
         double pi = 3.14;
         double area = pi * radius * radius;
         double circumference = 2 * pi * radius;
-
         String questionText = "Circle with radius " + radius + ". Find its area and circumference.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyCircle(radius, area, circumference);
-
         String correctAnswer = "Area: " + String.format("%.2f", area) + ", Circumference: " + String.format("%.2f", circumference);
-
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -162,12 +159,9 @@ public class QuestionGeneratorService {
         int height = getRandomNumber(new int[]{1, 20});
         double area = 0.5 * base * height;
         double hypotenuse = Math.sqrt(base * base + height * height);
-
         String questionText = "Right triangle with base " + base + " and height " + height + ". Find its area and hypotenuse.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyTriangle(base, height, area, hypotenuse);
-
         String correctAnswer = "Area: " + String.format("%.2f", area) + ", Hypotenuse: " + String.format("%.2f", hypotenuse);
-
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -175,12 +169,9 @@ public class QuestionGeneratorService {
         int side = getRandomNumber(new int[]{1, 10});
         double apothem = side / (2 * Math.tan(Math.PI / 5));
         double area = (5 * side * apothem) / 2;
-
         String questionText = "Regular pentagon with side length " + side + ". Find its approximate area.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyPolygon(side, apothem, area);
-
         String correctAnswer = "Approximate Area: " + String.format("%.2f", area);
-
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -211,7 +202,6 @@ public class QuestionGeneratorService {
                 .topic(topic)
                 .difficultyLevel(difficulty)
                 .build();
-
         return questionRepository.save(generated);
     }
 
