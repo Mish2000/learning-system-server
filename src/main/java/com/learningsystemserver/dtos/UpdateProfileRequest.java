@@ -7,4 +7,5 @@ public class UpdateProfileRequest {
     private String username;
     private String password;
     private String interfaceLanguage;
+    private String profileImage;
 }

@@ -10,4 +10,5 @@ public class ProfileResponse {
     private String email;
     private String interfaceLanguage;
     private String solutionDetailLevel;
+    private String profileImage;
 }
