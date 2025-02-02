@@ -2,16 +2,16 @@ package com.learningsystemserver.Utils;
 
 public class QuestionAlgorithmsFunctions {
 
-    //.......................................Addition Simplification................................................................
+    //.......................................addition--------------------------------------------------------------------
 
-    public static String simplifyAddition(int a, int b, int answer) {
+    public static String simplify(int a, int b, int answer) {
         boolean aIsNegative = a < 0;
         boolean bIsNegative = b < 0;
 
         int posA = Math.abs(a);
         int posB = Math.abs(b);
 
-        if (posA < 10 && posB < 10 && answer < 10) {
+        if (posA < 10 && posB < 10 && answer <= 10) {
             return "To add " + a + " and " + b + ", simply add them together to get " + answer + ".";
         } else if (posA < 10 && posB < 10) {
             int bigger = Math.max(a, b);
@@ -25,11 +25,11 @@ public class QuestionAlgorithmsFunctions {
         } else if (posB % 10 == 0 && posA < 10) {
             return "To add " + a + " and " + b + ", simply add " + a + " to " + b + " to get " + answer + ".";
         } else {
-            return simplifyMultiDigitAddition(a, b, answer, aIsNegative, bIsNegative);
+            return simplifyMultiDigit(a, b, answer, aIsNegative, bIsNegative);
         }
     }
 
-    private static String simplifyMultiDigitAddition(int a, int b, int answer, boolean aIsNegative, boolean bIsNegative) {
+    private static String simplifyMultiDigit(int a, int b, int answer, boolean aIsNegative, boolean bIsNegative) {
         String aParts = getNumberParts(a, aIsNegative);
         String bParts = getNumberParts(b, bIsNegative);
 
@@ -41,7 +41,7 @@ public class QuestionAlgorithmsFunctions {
             }
             if (Math.abs(b) < 10 && Math.abs(a) >= 10) {
                 if (Math.abs(a) + Math.abs(b) < 100) {
-                    return "To add " + b + " to " + a + ", simply add " + b + " to " + a + " to get " + answer + ".";
+                    return "To add " + a + " and " + b + ", simply add " + b + " to " + a + " to get " + answer + ".";
                 }
             }
         }
@@ -58,18 +58,16 @@ public class QuestionAlgorithmsFunctions {
 
         if (a >= 100 || b >= 100) {
             step2 = "Step 2: Combine the parts:\n";
-            step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";
-            step2 += "Combine the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";
-            step2 += "Combine the hundreds: " + aHundreds + " + " + bHundreds + " = " + (aHundreds + bHundreds) + "\n";
-            int totalOnes = aOnes + bOnes;
-            int totalTens = aTens + bTens;
+            if(aOnes != 0 && bOnes != 0) { step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";}else if(((aOnes + bOnes)==0)){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
+            if(aTens != 0 && bTens != 0) {step2 += "Combine the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";}else if((aTens + bTens)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aTens)+"\n";}
+            if(aHundreds != 0 && bHundreds != 0) { step2 += "Combine the hundreds: " + aHundreds + " + " + bHundreds + " = " + (aHundreds + bHundreds) + "\n";}else if (((aHundreds + bHundreds)==0)){step2+="";}else {step2 += "from the hundreds we only have: "+Math.max(bHundreds,aHundreds)+"\n";}
             int totalHundreds = aHundreds + bHundreds;
             String step3 = "Step 3: Now combine all the parts: " + totalHundreds + " + " + (aTens + bTens) + " + " + (aOnes + bOnes) + " = " + answer;
-            return step1 + "\n" + step2 + "\n" + step3;
+            return step1 + "\n\n" + step2 + "\n" + step3;
         } else {
             step2 = "Step 2: Combine the parts:\n";
-            step2 += "Combine the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";
-            step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";
+            if (aTens != 0 || bTens != 0) { step2 += "Combine the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";}else if((aTens + bTens)==0){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
+            if (aOnes != 0 || bOnes != 0) {step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";}else if((aOnes + bOnes)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aOnes)+"\n";}
             int totalOnes = aOnes + bOnes;
             int totalTens = aTens + bTens;
             String step3 = "Step 3: Now combine all the parts: " + totalTens + " + " + totalOnes + " = " + answer;
@@ -82,10 +80,10 @@ public class QuestionAlgorithmsFunctions {
         int tens = ((Math.abs(num) % 100) / 10) * 10;
         int ones = Math.abs(num) % 10;
 
-        String sign = isNegative ? "-" : "";
-        String hundredsString = hundreds > 0 ? hundreds + " (hundreds)" : "";
-        String tensString = tens > 0 ? tens + " (tens)" : "";
-        String onesString = ones > 0 ? ones + " (ones)" : "";
+        String sign = isNegative? "-" : "";
+        String hundredsString = hundreds > 0? hundreds + " (hundreds)" : "";
+        String tensString = tens > 0? tens + " (tens)" : "";
+        String onesString = ones > 0? ones + " (ones)" : "";
 
         String result = sign + Math.abs(num) + " = ";
         if (!hundredsString.isEmpty()) {
@@ -98,7 +96,7 @@ public class QuestionAlgorithmsFunctions {
             result += tensString;
         }
         if (!onesString.isEmpty()) {
-            if (!hundredsString.isEmpty() || !tensString.isEmpty()) {
+            if (!hundredsString.isEmpty() ||!tensString.isEmpty()) {
                 result += " + ";
             }
             result += onesString;
@@ -107,7 +105,7 @@ public class QuestionAlgorithmsFunctions {
         return result;
     }
 
-    //.......................................Fraction Simplification................................................................
+//.......................................Fraction Simplification................................................................
 
     public static String simplifyFractions(int num1, int den1, int num2, int den2, int sumNum, int commonDen) {
         int gcd = findGCD(sumNum, commonDen);
