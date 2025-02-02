@@ -4,7 +4,7 @@ public class QuestionAlgorithmsFunctions {
 
     //.......................................addition--------------------------------------------------------------------
 
-    public static String simplify(int a, int b, int answer) {
+    public static String simplifyAddition(int a, int b, int answer) {
         boolean aIsNegative = a < 0;
         boolean bIsNegative = b < 0;
 
@@ -104,6 +104,7 @@ public class QuestionAlgorithmsFunctions {
 
         return result;
     }
+
 
 //.......................................Fraction Simplification................................................................
 
