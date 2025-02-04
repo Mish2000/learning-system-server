@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 import static com.learningsystemserver.exceptions.ErrorMessages.USERNAME_DOES_NOT_EXIST;
 
 @RestController
@@ -101,5 +103,7 @@ public class QuestionController {
                 (q.getDifficultyLevel() != null) ? q.getDifficultyLevel().name() : null
         );
     }
+//    @PostMapping("/progress")
+//    public List<Boolean>
 }
 

@@ -88,7 +88,7 @@ public class QuestionGeneratorService {
         }
         int answer = a - b;
         String questionText = a + " - " + b + " = ?";
-        String solutionSteps = "Subtract " + b + " from " + a + " to get " + answer + ".";
+        String solutionSteps = QuestionAlgorithmsFunctions.simplifySubtraction(a, b, answer);
         return saveQuestion(questionText, solutionSteps, String.valueOf(answer), topic, difficulty);
     }
 
