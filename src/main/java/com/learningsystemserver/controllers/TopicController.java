@@ -1,8 +1,7 @@
 package com.learningsystemserver.controllers;
 
-import com.learningsystemserver.dtos.TopicRequest;
-import com.learningsystemserver.dtos.TopicResponse;
-import com.learningsystemserver.entities.Topic;
+import com.learningsystemserver.dtos.requests.TopicRequest;
+import com.learningsystemserver.dtos.responses.TopicResponse;
 import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.services.TopicService;
 import lombok.RequiredArgsConstructor;

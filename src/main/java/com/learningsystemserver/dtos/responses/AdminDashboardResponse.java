@@ -1,20 +1,17 @@
-package com.learningsystemserver.dtos;
+package com.learningsystemserver.dtos.responses;
 
 import lombok.Data;
 
 import java.util.Map;
 
 @Data
-public class UserDashboardResponse {
+public class AdminDashboardResponse {
 
-    private Long userId;
+    private long totalUsers;
     private long totalAttempts;
-    private long correctAttempts;
-    private double successRate;
-
+    private double overallSuccessRate;
 
     private Map<String, Long> attemptsByTopic;
-
 
     private Map<String, Double> successRateByTopic;
 }

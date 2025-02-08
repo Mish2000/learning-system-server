@@ -1,4 +1,4 @@
-package com.learningsystemserver.dtos;
+package com.learningsystemserver.dtos.requests;
 
 import lombok.Data;
 

@@ -1,6 +1,6 @@
 package com.learningsystemserver.services;
 
-import com.learningsystemserver.Utils.QuestionAlgorithmsFunctions;
+import com.learningsystemserver.utils.QuestionAlgorithmsFunctions;
 import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.GeneratedQuestion;
 import com.learningsystemserver.entities.Topic;

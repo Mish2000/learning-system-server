@@ -1,9 +1,9 @@
 package com.learningsystemserver.controllers;
 
-import com.learningsystemserver.dtos.QuestionRequest;
-import com.learningsystemserver.dtos.QuestionResponse;
-import com.learningsystemserver.dtos.SubmitAnswerRequest;
-import com.learningsystemserver.dtos.SubmitAnswerResponse;
+import com.learningsystemserver.dtos.requests.QuestionRequest;
+import com.learningsystemserver.dtos.responses.QuestionResponse;
+import com.learningsystemserver.dtos.requests.SubmitAnswerRequest;
+import com.learningsystemserver.dtos.responses.SubmitAnswerResponse;
 import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.GeneratedQuestion;
 import com.learningsystemserver.entities.User;
@@ -16,8 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 import static com.learningsystemserver.exceptions.ErrorMessages.USERNAME_DOES_NOT_EXIST;
 
@@ -103,7 +101,6 @@ public class QuestionController {
                 (q.getDifficultyLevel() != null) ? q.getDifficultyLevel().name() : null
         );
     }
-//    @PostMapping("/progress")
-//    public List<Boolean>
+
 }
 

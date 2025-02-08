@@ -1,4 +1,4 @@
-package com.learningsystemserver.Utils;
+package com.learningsystemserver.utils;
 
 public class QuestionAlgorithmsFunctions {
 

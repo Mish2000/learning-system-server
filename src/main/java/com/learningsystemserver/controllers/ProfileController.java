@@ -2,8 +2,8 @@ package com.learningsystemserver.controllers;
 
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.repositories.UserRepository;
-import com.learningsystemserver.dtos.UpdateProfileRequest;
-import com.learningsystemserver.dtos.ProfileResponse;
+import com.learningsystemserver.dtos.requests.UpdateProfileRequest;
+import com.learningsystemserver.dtos.responses.ProfileResponse;
 import com.learningsystemserver.services.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

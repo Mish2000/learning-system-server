@@ -1,7 +1,7 @@
 package com.learningsystemserver.services;
 
-import com.learningsystemserver.dtos.AdminDashboardResponse;
-import com.learningsystemserver.dtos.UserDashboardResponse;
+import com.learningsystemserver.dtos.responses.AdminDashboardResponse;
+import com.learningsystemserver.dtos.responses.UserDashboardResponse;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.entities.UserQuestionHistory;
 import com.learningsystemserver.exceptions.InvalidInputException;
@@ -22,6 +22,7 @@ public class DashboardService {
 
     private final UserRepository userRepository;
     private final UserQuestionHistoryRepository historyRepository;
+    private final NotificationService notificationService;
 
     public UserDashboardResponse buildUserDashboard(String username) throws InvalidInputException {
         User user = userRepository.findByUsername(username)
@@ -83,10 +84,9 @@ public class DashboardService {
         Map<String, Long> correctByTopic = new HashMap<>();
 
         for (UserQuestionHistory h : allAttempts) {
-            String topicName = "Unknown";
-            if (h.getQuestion().getTopic() != null) {
-                topicName = h.getQuestion().getTopic().getName();
-            }
+            String topicName = (h.getQuestion().getTopic() != null)
+                    ? h.getQuestion().getTopic().getName()
+                    : "Unknown";
             attemptsByTopic.put(topicName, attemptsByTopic.getOrDefault(topicName, 0L) + 1);
             if (h.isCorrect()) {
                 correctByTopic.put(topicName, correctByTopic.getOrDefault(topicName, 0L) + 1);
@@ -97,8 +97,14 @@ public class DashboardService {
         for (String topic : attemptsByTopic.keySet()) {
             long cCount = correctByTopic.getOrDefault(topic, 0L);
             long tCount = attemptsByTopic.get(topic);
-            double rate = (tCount == 0) ? 0.0 : (double)cCount / tCount;
+            double rate = (tCount == 0) ? 0.0 : (double) cCount / tCount;
             successRateByTopic.put(topic, rate);
+
+            if (rate < 0.1 && tCount > 10) {
+                notificationService.notifyAdminErrorPattern(
+                        "Very low success rate (" + (rate*100) + "%) detected in topic: " + topic
+                );
+            }
         }
 
         AdminDashboardResponse adminResp = new AdminDashboardResponse();

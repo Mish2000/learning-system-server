@@ -1,15 +1,14 @@
 
 package com.learningsystemserver.controllers;
 
-import com.learningsystemserver.dtos.AdminDashboardResponse;
-import com.learningsystemserver.dtos.UserDashboardResponse;
+import com.learningsystemserver.dtos.responses.AdminDashboardResponse;
+import com.learningsystemserver.dtos.responses.UserDashboardResponse;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.services.DashboardService;
 import com.learningsystemserver.services.JwtService;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;

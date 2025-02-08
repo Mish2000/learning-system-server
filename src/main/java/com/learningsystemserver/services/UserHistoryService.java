@@ -1,8 +1,8 @@
 package com.learningsystemserver.services;
 
 import com.learningsystemserver.controllers.SseDashboardController;
-import com.learningsystemserver.dtos.AdminDashboardResponse;
-import com.learningsystemserver.dtos.UserDashboardResponse;
+import com.learningsystemserver.dtos.responses.AdminDashboardResponse;
+import com.learningsystemserver.dtos.responses.UserDashboardResponse;
 import com.learningsystemserver.entities.GeneratedQuestion;
 import com.learningsystemserver.entities.Role;
 import com.learningsystemserver.entities.User;

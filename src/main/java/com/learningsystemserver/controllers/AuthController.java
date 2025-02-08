@@ -1,13 +1,12 @@
 package com.learningsystemserver.controllers;
 
-import com.learningsystemserver.dtos.AuthRequest;
-import com.learningsystemserver.dtos.AuthResponse;
-import com.learningsystemserver.dtos.RegisterRequest;
+import com.learningsystemserver.dtos.requests.AuthRequest;
+import com.learningsystemserver.dtos.responses.AuthResponse;
+import com.learningsystemserver.dtos.requests.RegisterRequest;
 import com.learningsystemserver.entities.Role;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.exceptions.AlreadyInUseException;
 import com.learningsystemserver.exceptions.InvalidInputException;
-import com.learningsystemserver.exceptions.UnauthorizedException;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.services.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -34,15 +33,12 @@ public class AuthController {
     @PostMapping("/register")
     public AuthResponse register(@RequestBody RegisterRequest request) throws AlreadyInUseException {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new AlreadyInUseException(
-                    String.format(USERNAME_ALREADY_EXIST.getMessage(), request.getUsername())
-            );
+            throw new AlreadyInUseException("Username already exists: " + request.getUsername());
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new AlreadyInUseException(
-                    String.format(EMAIL_ALREADY_EXIST.getMessage(), request.getEmail())
-            );
-        }
+
+         if (userRepository.existsByEmail(request.getEmail())) {
+            throw new AlreadyInUseException("Email already exists: " + request.getEmail());
+         }
 
         User newUser = new User();
         newUser.setUsername(request.getUsername());
@@ -53,11 +49,7 @@ public class AuthController {
         userRepository.save(newUser);
 
         String token = jwtService.generateToken(newUser.getUsername());
-        return new AuthResponse(
-                token,
-                newUser.getUsername(),
-                newUser.getRole().name()
-        );
+        return new AuthResponse(token, newUser.getUsername(), newUser.getRole().name());
     }
 
     @PostMapping("/login")
