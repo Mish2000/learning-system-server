@@ -1,8 +1,8 @@
 package com.learningsystemserver.controllers;
 
 import com.learningsystemserver.dtos.requests.QuestionRequest;
-import com.learningsystemserver.dtos.responses.QuestionResponse;
 import com.learningsystemserver.dtos.requests.SubmitAnswerRequest;
+import com.learningsystemserver.dtos.responses.QuestionResponse;
 import com.learningsystemserver.dtos.responses.SubmitAnswerResponse;
 import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.GeneratedQuestion;
@@ -16,6 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.learningsystemserver.exceptions.ErrorMessages.USERNAME_DOES_NOT_EXIST;
 
@@ -54,12 +58,14 @@ public class QuestionController {
 
         boolean isCorrect;
         String topicName = q.getTopic() != null ? q.getTopic().getName().toLowerCase() : "";
-        if(topicName.contains("rectangle") || topicName.contains("circle") ||
+        System.out.println("userAnswer :  " + request.getUserAnswer());
+        if (topicName.contains("rectangle") || topicName.contains("circle") ||
                 topicName.contains("triangle") || topicName.contains("polygon")) {
             isCorrect = checkFlexibleAnswer(q.getCorrectAnswer(), request.getUserAnswer());
-        } else {
+
+        } else
             isCorrect = q.getCorrectAnswer().equalsIgnoreCase(request.getUserAnswer());
-        }
+
 
         userHistoryService.logAttempt(
                 user.getId(),
@@ -72,17 +78,103 @@ public class QuestionController {
         return new SubmitAnswerResponse(isCorrect, q.getCorrectAnswer(), q.getSolutionSteps());
     }
 
+
     private boolean checkFlexibleAnswer(String correctAnswer, String userAnswer) {
-        correctAnswer = correctAnswer.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
-        userAnswer = userAnswer.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
-        String[] correctParts = correctAnswer.split("\\s+");
-        for(String part: correctParts) {
-            if(!userAnswer.contains(part)) {
+
+        String filteredUserAnswer = userAnswer.toLowerCase().replaceAll("\\D", " ");
+        String filteredCorrectAnswer = correctAnswer.toLowerCase().replaceAll("\\D", " ");
+
+        System.out.println("filteredCorrectAnswer"+filteredCorrectAnswer);
+        String[] userAnswerFilteredArray = filteredUserAnswer.split("\\s+");
+        String[] correctParts = filteredCorrectAnswer.split("\\s+");
+
+        System.out.println("correctParts"+Arrays.toString(correctParts));
+
+        String[] nonEmptyAnswers = Arrays.stream(userAnswerFilteredArray)
+                .filter(userAnswerFiltered -> !userAnswerFiltered.equals(""))
+                .toArray(String[]::new);
+
+//        Map<Integer, String> nonEmptyPartsMap =
+//                IntStream.range(0, correctParts.length)
+//                        .filter(i -> !correctParts[i].isEmpty())
+//                        .mapToObj(i -> new AbstractMap.SimpleEntry<>(i - (int)IntStream.range(0, i).filter(j -> correctParts[j].isEmpty()).count(), correctParts[i]))
+//                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+//
+        Map<Integer,String> nonEmptyPartsMap = new HashMap<>();
+        int counter = 0;
+        for (int i = 0;i<correctParts.length;i++) {
+            if (!correctParts[i].isEmpty()) {
+                nonEmptyPartsMap.put(counter, correctParts[i]);
+                counter++;
+            }
+        }
+        nonEmptyPartsMap.forEach((key, value) -> System.out.println("Key: " + key + ", Value: " + value));
+
+        Map<Integer,String> nonEmptyAnswerMap = new HashMap<>();
+        counter = 0;
+        for (int i = 0;i<userAnswerFilteredArray.length;i++) {
+            if (!userAnswerFilteredArray[i].isEmpty()) {
+                nonEmptyAnswerMap.put(counter, userAnswerFilteredArray[i]);
+                counter++;
+            }
+        }
+        nonEmptyAnswerMap.forEach((key, value) -> System.out.println("Key: " + key + ", Value: " + value));
+
+        for (int i = 0; i < counter; i++) {
+            System.out.println("nonEmptyUserAnswerMap "+nonEmptyAnswerMap.get(i));
+            if (!nonEmptyAnswerMap.get(i).equals(nonEmptyPartsMap.get(i))) {
+                System.out.println(i+"not equals");
                 return false;
             }
         }
         return true;
     }
+
+    private static List<Integer> getKeysByValue(Map<Integer, String> map, String value) {
+        List<Integer> keys = new ArrayList<>();
+
+        for (Map.Entry<Integer, String > entry : map.entrySet()) {
+            if (entry.getValue().equals(value)) {
+                keys.add(entry.getKey());
+            }
+        }
+
+        return keys;
+    }
+
+
+    private Map<Integer,String> getNumbersDecimal(String userAnswer) {
+        Map<Integer,String> map = new HashMap<>();
+        String[] parts = userAnswer.split(", ");
+        String result = "";
+
+        int counterNumbers = 0;
+        for (String part : parts) {
+            if (part.contains(".")) {
+                String afterDecimal = part.split("\\.")[1];
+                map.put(counterNumbers, afterDecimal);
+                result += afterDecimal + " ";
+            }
+            counterNumbers ++;
+        }
+        System.out.println(result.trim());
+
+        return map;
+    }
+
+
+//    public static boolean isInteger(String str) {
+//        if (str == null) {
+//            return false;
+//        }
+//        try {
+//            Integer.parseInt(str);
+//            return true;
+//        } catch (NumberFormatException e) {
+//            return false;
+//        }
+//    }
+
 
 
     @GetMapping("/{id}")
