@@ -31,6 +31,7 @@ public class Topic {
     @JoinColumn(name = "parent_topic_id")
     private Topic parentTopic;
 
-    @OneToMany(mappedBy = "parentTopic", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "parentTopic", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<Topic> subtopics = new HashSet<>();
+
 }
