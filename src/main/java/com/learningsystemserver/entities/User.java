@@ -13,8 +13,10 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String username;
     private String email;
+
     @JsonIgnore
     private String password;
 
@@ -23,10 +25,13 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
     private String interfaceLanguage;
     private String solutionDetailLevel;
 
     @Lob
     private byte[] profileImage;
+
+    private Integer subDifficultyLevel = 0;
 }
 

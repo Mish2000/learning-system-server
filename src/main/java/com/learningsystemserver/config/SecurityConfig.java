@@ -9,6 +9,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -53,18 +54,24 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/hello").permitAll()
-                        .requestMatchers("/api/topics/**").permitAll()
+                        .requestMatchers("/api/notifications/**").authenticated()
+
+
+                        .requestMatchers(HttpMethod.GET, "/api/topics/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/topics/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/topics/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/topics/**").hasRole("ADMIN")
+
                         .requestMatchers("/api/questions/**").permitAll()
                         .requestMatchers("/api/sse/**").permitAll()
                         .requestMatchers("/api/dashboard/user").authenticated()
                         .requestMatchers("/api/dashboard/admin").hasRole("ADMIN")
-
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(
-                        org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
+
 }

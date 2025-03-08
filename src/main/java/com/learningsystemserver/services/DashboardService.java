@@ -69,6 +69,8 @@ public class DashboardService {
         resp.setSuccessRate(successRate);
         resp.setAttemptsByTopic(attemptsByTopic);
         resp.setSuccessRateByTopic(successRateByTopic);
+        resp.setCurrentDifficulty(user.getCurrentDifficulty() != null ? user.getCurrentDifficulty().name() : "BASIC");
+        resp.setSubDifficultyLevel(user.getSubDifficultyLevel());
 
         return resp;
     }

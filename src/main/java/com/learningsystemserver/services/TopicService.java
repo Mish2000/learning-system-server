@@ -84,6 +84,14 @@ public class TopicService {
         resp.setDescription(topic.getDescription());
         resp.setDifficultyLevel(topic.getDifficultyLevel().name());
         resp.setParentId(topic.getParentTopic() != null ? topic.getParentTopic().getId() : null);
+
+        if (topic.getSubtopics() != null) {
+            resp.setSubtopicCount(topic.getSubtopics().size());
+        } else {
+            resp.setSubtopicCount(0);
+        }
+
         return resp;
     }
+
 }

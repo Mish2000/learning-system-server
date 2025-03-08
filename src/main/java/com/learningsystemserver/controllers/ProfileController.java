@@ -39,8 +39,11 @@ public class ProfileController {
                 .email(user.getEmail())
                 .interfaceLanguage(user.getInterfaceLanguage())
                 .profileImage(base64Image)
+                .subDifficultyLevel(user.getSubDifficultyLevel())
+                .currentDifficulty(user.getCurrentDifficulty() != null ? user.getCurrentDifficulty().name() : "BASIC")
                 .build();
     }
+
 
     @PutMapping
     public ProfileResponse updateProfile(@RequestBody UpdateProfileRequest request) {

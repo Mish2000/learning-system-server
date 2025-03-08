@@ -11,10 +11,8 @@ public class UserDashboardResponse {
     private long totalAttempts;
     private long correctAttempts;
     private double successRate;
-
-
     private Map<String, Long> attemptsByTopic;
-
-
     private Map<String, Double> successRateByTopic;
+    private String currentDifficulty;
+    private Integer subDifficultyLevel;
 }

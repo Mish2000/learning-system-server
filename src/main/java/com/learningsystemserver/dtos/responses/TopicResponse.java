@@ -9,4 +9,5 @@ public class TopicResponse {
     private String description;
     private String difficultyLevel;
     private Long parentId;
+    private int subtopicCount;
 }

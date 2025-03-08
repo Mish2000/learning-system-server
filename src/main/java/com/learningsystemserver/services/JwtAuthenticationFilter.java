@@ -38,35 +38,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
         if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
+            String paramToken = request.getParameter("token");
+            if (StringUtils.hasText(paramToken)) {
+                authHeader = "Bearer " + paramToken;
+            }
+        }
+
+        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String jwt = authHeader.substring(7);
-
         String username = jwtService.extractUsername(jwt);
-        log.info("JwtAuthenticationFilter - Extracted JWT subject: {}", username);
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
-                log.info("Token is valid for username={}", userDetails.getUsername());
-
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                log.info("SecurityContext set with principal={}", userDetails.getUsername());
-            } else {
-                log.error("Token invalid for username={}", userDetails.getUsername());
             }
         }
 
         filterChain.doFilter(request, response);
     }
+
 }
