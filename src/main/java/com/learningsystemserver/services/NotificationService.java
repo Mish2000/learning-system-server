@@ -1,5 +1,6 @@
 package com.learningsystemserver.services;
 
+import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.Notification;
 import com.learningsystemserver.repositories.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,26 @@ public class NotificationService {
         String adminUsername = "admin";
         String message = "A new error pattern was detected: " + patternDescription;
         createNotification(message, adminUsername, "ADMIN_ALERT");
+    }
+
+    public void notifyUserOfDifficultyChange(String username,
+                                             DifficultyLevel oldDifficulty,
+                                             DifficultyLevel newDifficulty) {
+        String message = String.format(
+                "Your difficulty has changed from %s to %s!",
+                oldDifficulty.name(),
+                newDifficulty.name()
+        );
+        createNotification(message, username, "DIFFICULTY_CHANGE");
+    }
+
+    public void notifySublevelChange(String username, int oldSubLevel, int newSubLevel) {
+        String message = String.format(
+                "Your sub-level changed from %d to %d!",
+                oldSubLevel,
+                newSubLevel
+        );
+        createNotification(message, username, "SUBLEVEL_CHANGE");
     }
 
     public void clearAllNotificationsForUser(String username) {

@@ -49,35 +49,47 @@ public class AdaptiveService {
         long correctCount = lastAttempts.stream().filter(UserQuestionHistory::isCorrect).count();
         double successRate = (double) correctCount / lastAttempts.size();
 
-        DifficultyLevel currentDifficulty = (user.getCurrentDifficulty() == null)
+        DifficultyLevel oldDifficulty = (user.getCurrentDifficulty() == null)
                 ? DifficultyLevel.BASIC
                 : user.getCurrentDifficulty();
+        int oldSubLevel = (user.getSubDifficultyLevel() == null) ? 0 : user.getSubDifficultyLevel();
 
-        int subLevel = (user.getSubDifficultyLevel() == null)
-                ? 0
-                : user.getSubDifficultyLevel();
+        DifficultyLevel newDifficulty = oldDifficulty;
+        int newSubLevel = oldSubLevel;
 
         if (successRate < 0.4) {
-            if (enableIntermediateLevels && subLevel < maxIntermediateSublevels) {
-                user.setSubDifficultyLevel(subLevel + 1);
+            if (enableIntermediateLevels && oldSubLevel < maxIntermediateSublevels) {
+                newSubLevel = oldSubLevel + 1;
             } else {
-                DifficultyLevel newDifficulty = getLowerDifficulty(currentDifficulty);
-                user.setCurrentDifficulty(newDifficulty);
-                user.setSubDifficultyLevel(0);
+                newDifficulty = getLowerDifficulty(oldDifficulty);
+                newSubLevel = 0;
                 Topic recentTopic = lastAttempts.get(0).getQuestion().getTopic();
                 String topicName = (recentTopic != null) ? recentTopic.getName() : "this topic";
                 notificationService.notifyUserDifficulty(user.getUsername(), topicName);
             }
         } else if (successRate > 0.8) {
-            if (subLevel > 0) {
-                user.setSubDifficultyLevel(subLevel - 1);
+            if (oldSubLevel > 0) {
+                newSubLevel = oldSubLevel - 1;
             } else {
-                DifficultyLevel newDifficulty = getHigherDifficulty(currentDifficulty);
-                user.setCurrentDifficulty(newDifficulty);
+                newDifficulty = getHigherDifficulty(oldDifficulty);
             }
         }
+
+        if (!newDifficulty.equals(oldDifficulty)) {
+            notificationService.notifyUserOfDifficultyChange(
+                    user.getUsername(),
+                    oldDifficulty,
+                    newDifficulty
+            );
+        } else if (newSubLevel != oldSubLevel) {
+            notificationService.notifySublevelChange(user.getUsername(), oldSubLevel, newSubLevel);
+        }
+
+        user.setCurrentDifficulty(newDifficulty);
+        user.setSubDifficultyLevel(newSubLevel);
         userRepository.save(user);
     }
+
 
     private DifficultyLevel getLowerDifficulty(DifficultyLevel d) {
         return switch (d) {
