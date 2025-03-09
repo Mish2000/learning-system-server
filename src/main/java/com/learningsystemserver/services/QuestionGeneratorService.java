@@ -130,16 +130,6 @@ public class QuestionGeneratorService {
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyFractions(num1, den1, num2, den2, sumNum, commonDen);
         String correctAnswer = sumNum + "/" + commonDen;
         Double correctAnswerDouble = 0.0;
-//        if (sumNum > commonDen) {
-//            correctAnswerDouble = Double.valueOf(sumNum) / Double.valueOf(commonDen) + Double.valueOf(sumNum);
-//        } else if (sumNum == commonDen) {
-//            correctAnswerDouble = 1.0;
-//        } else {
-//            correctAnswerDouble = Double.valueOf(sumNum) / Double.valueOf(commonDen);
-//        }
-//        correctAnswerDouble = Math.round(correctAnswerDouble * 100.0) / 100.0;
-//        System.out.println("correct answer Double "+correctAnswerDouble);
-//        correctAnswer = String.valueOf(correctAnswerDouble);
         System.out.println("correct answer String"+correctAnswer);
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
@@ -152,7 +142,6 @@ public class QuestionGeneratorService {
         String questionText = "Rectangle with length " + length + " and width " + width + ". Find its area and perimeter.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyRectangle(length, width, area, perimeter);
         String correctAnswer = "Area: " + area + ", Perimeter: " + perimeter;
-//        String correctAnswer = area + " " + perimeter;
         System.out.println(correctAnswer);
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
@@ -165,7 +154,6 @@ public class QuestionGeneratorService {
         String questionText = "Circle with radius " + radius + ". Find its area and circumference.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyCircle(radius, area, circumference);
         String correctAnswer = "Area: " + String.format("%.2f", area) + ", Circumference: " + String.format("%.2f", circumference);
-//        String correctAnswer = "Area: " + String.format("%.2f", area) + ", Circumference: " + String.format("%.2f", circumference);
         System.out.println(correctAnswer);
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
@@ -195,10 +183,11 @@ public class QuestionGeneratorService {
 
     private int[] getRangeForDifficulty(DifficultyLevel difficulty) {
         return switch (difficulty) {
+            case BASIC -> new int[]{1, 10};
             case EASY -> new int[]{1, 30};
             case MEDIUM -> new int[]{1, 100};
             case ADVANCED -> new int[]{1, 1000};
-            default -> new int[]{1, 10};
+            case EXPERT -> new int[]{1, 9999};
         };
     }
 

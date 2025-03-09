@@ -22,7 +22,7 @@ public class NotificationController {
     @GetMapping("/stream")
     public SseEmitter streamNotifications() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        SseEmitter emitter = new SseEmitter(60000L);
+        SseEmitter emitter = new SseEmitter(0L);
         sseEmitterService.addEmitter(username, emitter);
         emitter.onCompletion(() -> sseEmitterService.removeEmitter(username, emitter));
         emitter.onTimeout(() -> sseEmitterService.removeEmitter(username, emitter));

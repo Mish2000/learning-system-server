@@ -4,7 +4,6 @@ import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.Topic;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.entities.UserQuestionHistory;
-import com.learningsystemserver.exceptions.ErrorMessages;
 import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserQuestionHistoryRepository;
 import com.learningsystemserver.repositories.UserRepository;
@@ -30,10 +29,10 @@ public class AdaptiveService {
     private int maxIntermediateSublevels;
 
     public void evaluateUserProgress(Long userId) throws InvalidInputException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InvalidInputException(
-                        String.format(ErrorMessages.USER_ID_DOES_NOT_EXIST.getMessage(), userId)
-                ));
+        System.out.println("=== evaluateUserProgress for userId: " + userId + " ===");
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new InvalidInputException("User does not exist: " + userId)
+        );
 
         List<UserQuestionHistory> lastAttempts = historyRepository.findAll()
                 .stream()
@@ -42,52 +41,57 @@ public class AdaptiveService {
                 .limit(5)
                 .toList();
 
-        if (lastAttempts.size() < 5) {
+        if (lastAttempts.isEmpty()) {
+            System.out.println("No attempts -> no adaptation performed.");
             return;
         }
 
         long correctCount = lastAttempts.stream().filter(UserQuestionHistory::isCorrect).count();
         double successRate = (double) correctCount / lastAttempts.size();
+        System.out.println("Success rate = " + successRate);
 
-        DifficultyLevel oldDifficulty = (user.getCurrentDifficulty() == null)
-                ? DifficultyLevel.BASIC
-                : user.getCurrentDifficulty();
-        int oldSubLevel = (user.getSubDifficultyLevel() == null) ? 0 : user.getSubDifficultyLevel();
+        DifficultyLevel oldDifficulty = (user.getCurrentDifficulty() != null)
+                ? user.getCurrentDifficulty()
+                : DifficultyLevel.BASIC;
 
         DifficultyLevel newDifficulty = oldDifficulty;
-        int newSubLevel = oldSubLevel;
 
         if (successRate < 0.4) {
-            if (enableIntermediateLevels && oldSubLevel < maxIntermediateSublevels) {
-                newSubLevel = oldSubLevel + 1;
-            } else {
-                newDifficulty = getLowerDifficulty(oldDifficulty);
-                newSubLevel = 0;
+            DifficultyLevel lowered = getLowerDifficulty(oldDifficulty);
+            if (!lowered.equals(oldDifficulty)) {
+                newDifficulty = lowered;
+                System.out.println("Lowering difficulty from " + oldDifficulty + " to " + newDifficulty);
                 Topic recentTopic = lastAttempts.get(0).getQuestion().getTopic();
                 String topicName = (recentTopic != null) ? recentTopic.getName() : "this topic";
                 notificationService.notifyUserDifficulty(user.getUsername(), topicName);
-            }
-        } else if (successRate > 0.8) {
-            if (oldSubLevel > 0) {
-                newSubLevel = oldSubLevel - 1;
+
             } else {
-                newDifficulty = getHigherDifficulty(oldDifficulty);
+                System.out.println("Already at BASIC, cannot lower further.");
             }
         }
+        else if (successRate > 0.8) {
+            DifficultyLevel higher = getHigherDifficulty(oldDifficulty);
+            if (!higher.equals(oldDifficulty)) {
+                newDifficulty = higher;
+                System.out.println("Raising difficulty from " + oldDifficulty + " to " + newDifficulty);
 
-        if (!newDifficulty.equals(oldDifficulty)) {
-            notificationService.notifyUserOfDifficultyChange(
-                    user.getUsername(),
-                    oldDifficulty,
-                    newDifficulty
-            );
-        } else if (newSubLevel != oldSubLevel) {
-            notificationService.notifySublevelChange(user.getUsername(), oldSubLevel, newSubLevel);
+                Topic recentTopic = lastAttempts.get(0).getQuestion().getTopic();
+                String topicName = (recentTopic != null) ? recentTopic.getName() : "this topic";
+                notificationService.notifyUserSuccess(user.getUsername(), topicName);
+
+            } else {
+                System.out.println("Already at EXPERT, cannot raise further.");
+            }
+        }
+        else {
+            System.out.println("User's success rate is moderate; no difficulty change.");
         }
 
         user.setCurrentDifficulty(newDifficulty);
-        user.setSubDifficultyLevel(newSubLevel);
+        user.setSubDifficultyLevel(0);
         userRepository.save(user);
+
+        System.out.println("=== Final difficulty = " + newDifficulty + " ===");
     }
 
 

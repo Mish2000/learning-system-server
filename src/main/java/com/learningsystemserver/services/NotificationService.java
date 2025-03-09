@@ -49,30 +49,18 @@ public class NotificationService {
         createNotification(message, username, "USER_WARNING");
     }
 
+    public void notifyUserSuccess(String username, String topicName) {
+        String message = String.format(
+                "You're doing great at %s! Keep up the good work!",
+                topicName
+        );
+        createNotification(message, username, "USER_SUCCESS");
+    }
+
     public void notifyAdminErrorPattern(String patternDescription) {
         String adminUsername = "admin";
         String message = "A new error pattern was detected: " + patternDescription;
         createNotification(message, adminUsername, "ADMIN_ALERT");
-    }
-
-    public void notifyUserOfDifficultyChange(String username,
-                                             DifficultyLevel oldDifficulty,
-                                             DifficultyLevel newDifficulty) {
-        String message = String.format(
-                "Your difficulty has changed from %s to %s!",
-                oldDifficulty.name(),
-                newDifficulty.name()
-        );
-        createNotification(message, username, "DIFFICULTY_CHANGE");
-    }
-
-    public void notifySublevelChange(String username, int oldSubLevel, int newSubLevel) {
-        String message = String.format(
-                "Your sub-level changed from %d to %d!",
-                oldSubLevel,
-                newSubLevel
-        );
-        createNotification(message, username, "SUBLEVEL_CHANGE");
     }
 
     public void clearAllNotificationsForUser(String username) {

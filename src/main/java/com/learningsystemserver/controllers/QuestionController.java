@@ -18,8 +18,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static com.learningsystemserver.exceptions.ErrorMessages.USERNAME_DOES_NOT_EXIST;
 
@@ -36,12 +34,20 @@ public class QuestionController {
 
     @PostMapping("/generate")
     public QuestionResponse generateQuestion(@RequestBody QuestionRequest request) {
-        DifficultyLevel level = (request.getDifficultyLevel() != null)
-                ? request.getDifficultyLevel()
-                : DifficultyLevel.BASIC;
+        DifficultyLevel level = request.getDifficultyLevel();
+        if (level == null) {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("No user found with username: " + username));
+            level = (user.getCurrentDifficulty() != null)
+                    ? user.getCurrentDifficulty()
+                    : DifficultyLevel.BASIC;
+        }
+
         GeneratedQuestion q = questionService.generateQuestion(request.getTopicId(), level);
         return toResponse(q);
     }
+
 
     @PostMapping("/submit")
     public SubmitAnswerResponse submitAnswer(@RequestBody SubmitAnswerRequest request)
@@ -90,16 +96,11 @@ public class QuestionController {
 
         System.out.println("correctParts"+Arrays.toString(correctParts));
 
+        // nonEmptyAnswers is not currently used
         String[] nonEmptyAnswers = Arrays.stream(userAnswerFilteredArray)
                 .filter(userAnswerFiltered -> !userAnswerFiltered.equals(""))
                 .toArray(String[]::new);
 
-//        Map<Integer, String> nonEmptyPartsMap =
-//                IntStream.range(0, correctParts.length)
-//                        .filter(i -> !correctParts[i].isEmpty())
-//                        .mapToObj(i -> new AbstractMap.SimpleEntry<>(i - (int)IntStream.range(0, i).filter(j -> correctParts[j].isEmpty()).count(), correctParts[i]))
-//                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-//
         Map<Integer,String> nonEmptyPartsMap = new HashMap<>();
         int counter = 0;
         for (int i = 0;i<correctParts.length;i++) {
@@ -129,53 +130,6 @@ public class QuestionController {
         }
         return true;
     }
-
-    private static List<Integer> getKeysByValue(Map<Integer, String> map, String value) {
-        List<Integer> keys = new ArrayList<>();
-
-        for (Map.Entry<Integer, String > entry : map.entrySet()) {
-            if (entry.getValue().equals(value)) {
-                keys.add(entry.getKey());
-            }
-        }
-
-        return keys;
-    }
-
-
-    private Map<Integer,String> getNumbersDecimal(String userAnswer) {
-        Map<Integer,String> map = new HashMap<>();
-        String[] parts = userAnswer.split(", ");
-        String result = "";
-
-        int counterNumbers = 0;
-        for (String part : parts) {
-            if (part.contains(".")) {
-                String afterDecimal = part.split("\\.")[1];
-                map.put(counterNumbers, afterDecimal);
-                result += afterDecimal + " ";
-            }
-            counterNumbers ++;
-        }
-        System.out.println(result.trim());
-
-        return map;
-    }
-
-
-//    public static boolean isInteger(String str) {
-//        if (str == null) {
-//            return false;
-//        }
-//        try {
-//            Integer.parseInt(str);
-//            return true;
-//        } catch (NumberFormatException e) {
-//            return false;
-//        }
-//    }
-
-
 
     @GetMapping("/{id}")
     public QuestionResponse getQuestion(@PathVariable Long id) throws InvalidInputException {
