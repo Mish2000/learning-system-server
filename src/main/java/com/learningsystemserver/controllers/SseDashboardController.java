@@ -37,7 +37,7 @@ public class SseDashboardController {
     }
 
     @GetMapping(value = "/user-dashboard", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter connectUser(@RequestParam("token") String token) {
+    public SseEmitter connectUser(@RequestParam("token") String token) throws InvalidInputException {
         SseEmitter emitter = new SseEmitter(0L);
         Long userId = authenticate(token);
         userEmitters.put(userId, emitter);
@@ -61,7 +61,7 @@ public class SseDashboardController {
     }
 
     @GetMapping(value = "/admin-dashboard", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter connectAdmin(@RequestParam("token") String token) {
+    public SseEmitter connectAdmin(@RequestParam("token") String token) throws InvalidInputException {
         SseEmitter emitter = new SseEmitter(0L);
         Long userId = authenticateAdmin(token);
         adminEmitters.put(userId, emitter);
@@ -108,15 +108,15 @@ public class SseDashboardController {
         }
     }
 
-    private Long authenticate(String token) {
+    private Long authenticate(String token) throws InvalidInputException {
         String username = jwtService.extractUsername(token);
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("No user found"));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new InvalidInputException("No user found"));
         return user.getId();
     }
 
-    private Long authenticateAdmin(String token) {
+    private Long authenticateAdmin(String token) throws InvalidInputException {
         String username = jwtService.extractUsername(token);
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("No user found"));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new InvalidInputException("No user found"));
         if (!user.getRole().name().equals("ADMIN")) {
             throw new RuntimeException("Not admin");
         }

@@ -1,12 +1,15 @@
 package com.learningsystemserver.controllers;
 
 import com.learningsystemserver.entities.User;
+import com.learningsystemserver.exceptions.AlreadyInUseException;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.dtos.requests.UpdateProfileRequest;
 import com.learningsystemserver.dtos.responses.ProfileResponse;
 import com.learningsystemserver.services.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,10 +29,10 @@ public class ProfileController {
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping
-    public ProfileResponse getProfile() {
+    public ProfileResponse getProfile() throws InvalidInputException {
         String principalName = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(principalName)
-                .orElseThrow(() -> new RuntimeException("No user with username: " + principalName));
+                .orElseThrow(() -> new InvalidInputException("No user with username: " + principalName));
         String base64Image = null;
         if (user.getProfileImage() != null && user.getProfileImage().length > 0) {
             base64Image = Base64.getEncoder().encodeToString(user.getProfileImage());
@@ -46,15 +49,15 @@ public class ProfileController {
 
 
     @PutMapping
-    public ProfileResponse updateProfile(@RequestBody UpdateProfileRequest request) {
+    public ProfileResponse updateProfile(@RequestBody UpdateProfileRequest request) throws AlreadyInUseException, InvalidInputException {
         String principalName = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(principalName)
-                .orElseThrow(() -> new RuntimeException("No user with username: " + principalName));
+                .orElseThrow(() -> new InvalidInputException("No user with username: " + principalName));
 
         if (request.getUsername() != null && !request.getUsername().isEmpty() &&
                 !request.getUsername().equals(user.getUsername())) {
             if(userRepository.existsByUsername(request.getUsername())) {
-                throw new RuntimeException("Username already in use.");
+                throw new AlreadyInUseException("Username already in use.");
             }
             user.setUsername(request.getUsername());
         }
@@ -78,10 +81,10 @@ public class ProfileController {
     }
 
     @PostMapping("/uploadImage")
-    public ResponseEntity<String> uploadImage(@RequestParam("image") MultipartFile image) {
+    public ResponseEntity<String> uploadImage(@RequestParam("image") MultipartFile image) throws InvalidInputException {
         String principalName = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(principalName)
-                .orElseThrow(() -> new RuntimeException("No user with username: " + principalName));
+                .orElseThrow(() -> new InvalidInputException("No user with username: " + principalName));
         try {
             user.setProfileImage(image.getBytes());
             userRepository.save(user);

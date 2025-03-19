@@ -33,12 +33,12 @@ public class QuestionController {
     private final UserRepository userRepository;
 
     @PostMapping("/generate")
-    public QuestionResponse generateQuestion(@RequestBody QuestionRequest request) {
+    public QuestionResponse generateQuestion(@RequestBody QuestionRequest request) throws InvalidInputException {
         DifficultyLevel level = request.getDifficultyLevel();
         if (level == null) {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("No user found with username: " + username));
+                    .orElseThrow(() -> new InvalidInputException("No user found with username: " + username));
             level = (user.getCurrentDifficulty() != null)
                     ? user.getCurrentDifficulty()
                     : DifficultyLevel.BASIC;
@@ -96,7 +96,7 @@ public class QuestionController {
 
         System.out.println("correctParts"+Arrays.toString(correctParts));
 
-        // nonEmptyAnswers is not currently used
+
         String[] nonEmptyAnswers = Arrays.stream(userAnswerFilteredArray)
                 .filter(userAnswerFiltered -> !userAnswerFiltered.equals(""))
                 .toArray(String[]::new);
