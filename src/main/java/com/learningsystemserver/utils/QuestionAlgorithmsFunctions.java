@@ -115,18 +115,18 @@ public static String simplifySubtraction(int a, int b, int answer) {
     int posB = Math.abs(b);
 
     if (posA < 10 && posB < 10 && answer <= 10) {
-        return "To subtract " + b + " from " + a + ", simply subtract then directly to get " + answer + ".";
+        return "To subtract " + b + " from " + a + ", simply subtract and then you have " + answer + ".";
     } else if (posA < 10 && posB < 10) {
         int bigger = Math.max(a, b);
         int smaller = Math.min(a, b);
         int amountToTake = 10 - bigger;
         int remaining = smaller - amountToTake;
 
-        return "To subtract " + a + " and " + b + ", take " + amountToTake + " from " + smaller + " and subtract it to " + bigger + " to make 10, then add the remaining " + remaining + " to get " + answer + ".";
+        return "To subtract " + a + " in " + b + ", take " + amountToTake + " from " + smaller + " and subtract it to " + bigger + " to make 10, then add the remaining " + remaining + " to get " + answer + ".";
     } else if (posA % 10 == 0 && posB < 10) {
-        return "To subtract " + a + " and " + b + ", simply subtract " + b + " to " + a + " to get " + answer + ".";
+        return "To subtract " + a + " and " + b + ", simply subtract " + b + " from " + a + " to get " + answer + ".";
     } else if (posB % 10 == 0 && posA < 10) {
-        return "To subtract " + a + "subtract " + b + ", simply subtract " + a + " to " + b + " to get " + answer + ".";
+        return "To subtract " + a + "in " + b + ", simply subtract " + a + " from " + b + " to get " + answer + ".";
     } else {
         return simplifyMultiDigitSub(a, b, answer, aIsNegative, bIsNegative);
     }
@@ -166,19 +166,19 @@ public static String simplifySubtraction(int a, int b, int answer) {
 
         if (a >= 100 || b >= 100) {
             step2 = "Step 2: subtract the parts:\n";
-            if(aOnes != 0 && bOnes != 0) { step2 += "subtract the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";}else if(((aOnes + bOnes)==0)){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
-            if(aTens != 0 && bTens != 0) {step2 += "subtract the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";}else if((aTens + bTens)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aTens)+"\n";}
-            if(aHundreds != 0 && bHundreds != 0) { step2 += "subtract the hundreds: " + aHundreds + " + " + bHundreds + " = " + (aHundreds + bHundreds) + "\n";}else if (((aHundreds + bHundreds)==0)){step2+="";}else {step2 += "from the hundreds we only have: "+Math.max(bHundreds,aHundreds)+"\n";}
+            if(aOnes != 0 && bOnes != 0) { step2 += "subtract the ones: " + aOnes + " - " + bOnes + " = " + (aOnes - bOnes) + "\n";}else if(((aOnes - bOnes)==0)){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
+            if(aTens != 0 && bTens != 0) {step2 += "subtract the tens: " + aTens + " - " + bTens + " = " + (aTens - bTens) + "\n";}else if((aTens - bTens)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aTens)+"\n";}
+            if(aHundreds != 0 && bHundreds != 0) { step2 += "subtract the hundreds: " + aHundreds + " - " + bHundreds + " = " + (aHundreds - bHundreds) + "\n";}else if (((aHundreds - bHundreds)==0)){step2+="";}else {step2 += "from the hundreds we only have: "+Math.max(bHundreds,aHundreds)+"\n";}
             int totalHundreds = aHundreds + bHundreds;
-            String step3 = "Step 3: Now subtract all the parts: " + totalHundreds + " + " + (aTens + bTens) + " + " + (aOnes + bOnes) + " = " + answer;
+            String step3 = "Step 3: Now subtract all the parts: " + totalHundreds + " - " + (aTens - bTens) + " - " + (aOnes - bOnes) + " = " + answer;
             return step1 + "\n\n" + step2 + "\n" + step3;
         } else {
             step2 = "Step 2: subtract the parts:\n";
-            if (aTens != 0 || bTens != 0) { step2 += "subtract the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";}else if((aTens + bTens)==0){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
-            if (aOnes != 0 || bOnes != 0) {step2 += "subtract the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";}else if((aOnes + bOnes)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aOnes)+"\n";}
-            int totalOnes = aOnes + bOnes;
-            int totalTens = aTens + bTens;
-            String step3 = "Step 3: Now subtract all the parts: " + totalTens + " + " + totalOnes + " = " + answer;
+            if (aTens != 0 || bTens != 0) { step2 += "subtract the tens: " + aTens + " - " + bTens + " = " + (aTens - bTens) + "\n";}else if((aTens - bTens)==0){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
+            if (aOnes != 0 || bOnes != 0) {step2 += "subtract the ones: " + aOnes + " - " + bOnes + " = " + (aOnes - bOnes) + "\n";}else if((aOnes - bOnes)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aOnes)+"\n";}
+            int totalOnes = aOnes - bOnes;
+            int totalTens = aTens - bTens;
+            String step3 = "Step 3: Now subtract all the parts: " + totalTens + " - " + totalOnes + " = " + answer;
             return step1 + "\n\n" + step2 + "\n" + step3;
         }
     }
@@ -199,13 +199,13 @@ public static String simplifySubtraction(int a, int b, int answer) {
         }
         if (!tensString.isEmpty()) {
             if (!hundredsString.isEmpty()) {
-                result += " + ";
+                result += " and ";
             }
             result += tensString;
         }
         if (!onesString.isEmpty()) {
             if (!hundredsString.isEmpty() ||!tensString.isEmpty()) {
-                result += " + ";
+                result += " and ";
             }
             result += onesString;
         }
