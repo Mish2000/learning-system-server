@@ -28,7 +28,8 @@ public class UserHistoryService {
     private final DashboardService dashboardService;
 
     @Transactional
-    public void logAttempt(Long userId, Long questionId, boolean correct, String userAnswer, Long timeTakenSeconds) throws InvalidInputException {
+    public void logAttempt(Long userId, Long questionId, boolean correct, String userAnswer, Long timeTakenSeconds)
+            throws InvalidInputException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
         GeneratedQuestion question = questionRepository.findById(questionId)

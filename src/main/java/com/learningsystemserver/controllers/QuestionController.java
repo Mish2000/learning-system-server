@@ -78,7 +78,7 @@ public class QuestionController {
                 q.getId(),
                 isCorrect,
                 request.getUserAnswer(),
-                null
+                request.getTimeTakenSeconds()
         );
 
         return new SubmitAnswerResponse(isCorrect, q.getCorrectAnswer(), q.getSolutionSteps());
