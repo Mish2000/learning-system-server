@@ -9,7 +9,6 @@ import com.learningsystemserver.dtos.responses.ProfileResponse;
 import com.learningsystemserver.services.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,35 +48,51 @@ public class ProfileController {
 
 
     @PutMapping
-    public ProfileResponse updateProfile(@RequestBody UpdateProfileRequest request) throws AlreadyInUseException, InvalidInputException {
+    public ProfileResponse updateProfile(@RequestBody UpdateProfileRequest request)
+            throws AlreadyInUseException, InvalidInputException {
+
         String principalName = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(principalName)
                 .orElseThrow(() -> new InvalidInputException("No user with username: " + principalName));
 
+        boolean usernameChanged = false;
         if (request.getUsername() != null && !request.getUsername().isEmpty() &&
                 !request.getUsername().equals(user.getUsername())) {
+
             if(userRepository.existsByUsername(request.getUsername())) {
                 throw new AlreadyInUseException("Username already in use.");
             }
             user.setUsername(request.getUsername());
+            usernameChanged = true;
         }
+
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
+
         if (request.getInterfaceLanguage() != null) {
             user.setInterfaceLanguage(request.getInterfaceLanguage());
         }
+
         userRepository.save(user);
+
         String base64Image = null;
         if (user.getProfileImage() != null && user.getProfileImage().length > 0) {
             base64Image = Base64.getEncoder().encodeToString(user.getProfileImage());
         }
-        return ProfileResponse.builder()
+
+        ProfileResponse.ProfileResponseBuilder builder = ProfileResponse.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .interfaceLanguage(user.getInterfaceLanguage())
-                .profileImage(base64Image)
-                .build();
+                .profileImage(base64Image);
+
+        if (usernameChanged) {
+            String newToken = jwtService.generateToken(user.getUsername());
+            builder.newToken(newToken);
+        }
+
+        return builder.build();
     }
 
     @PostMapping("/uploadImage")
@@ -95,4 +110,5 @@ public class ProfileController {
         }
     }
 }
+
 
