@@ -9,6 +9,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,31 +48,35 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
-        http.cors(Customizer.withDefaults());
+        http.cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable);
 
-        return http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/hello").permitAll()
-                        .requestMatchers("/api/notifications/**").authenticated()
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/notifications/**").authenticated()
+                .requestMatchers("/api/ai/stream").permitAll()
+                .requestMatchers("/api/ai/**").permitAll()
 
+                .requestMatchers(HttpMethod.GET, "/api/topics/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/topics/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/topics/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/topics/**").hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/topics/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/topics/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/topics/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/topics/**").hasRole("ADMIN")
+                .requestMatchers("/api/questions/**").permitAll()
+                .requestMatchers("/api/sse/**").permitAll()
+                .requestMatchers("/api/dashboard/user").authenticated()
+                .requestMatchers("/api/dashboard/admin").hasRole("ADMIN")
+                .anyRequest().authenticated()
+        );
 
-                        .requestMatchers("/api/questions/**").permitAll()
-                        .requestMatchers("/api/sse/**").permitAll()
-                        .requestMatchers("/api/dashboard/user").authenticated()
-                        .requestMatchers("/api/dashboard/admin").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+        http.sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        );
+
+        http.authenticationProvider(authenticationProvider());
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
 
 }
