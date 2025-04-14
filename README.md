@@ -1,3 +1,6 @@
+
+---
+
 # Quick Math Learning System
 
 A self-paced learning platform for mathematics, offering dynamic question generation, automatic difficulty adaptation, user analytics, and more.
@@ -9,12 +12,19 @@ A self-paced learning platform for mathematics, offering dynamic question genera
 - [Features](#features)
 - [Architecture](#architecture)
 - [Installation](#installation)
+    - [Installing Ollama on PC](#installing-ollama-on-pc)
 - [Configuration](#configuration)
 - [Running the Project](#running-the-project)
 - [User Guide](#user-guide)
 - [Technology Stack](#technology-stack)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
+- [Dynamic Question Generator Overview](#dynamic-question-generator-overview)
+    - [Topics and Subtopics](#topics-and-subtopics)
+    - [Difficulty Handling](#difficulty-handling)
+    - [Random Generation of Questions](#random-generation-of-questions)
+    - [Complete Solutions](#complete-solutions)
+    - [Summary](#summary)
 
 ---
 
@@ -32,7 +42,7 @@ A self-paced learning platform for mathematics, offering dynamic question genera
 ### Frontend
 - **React** (using React Router for navigation)
 - **Axios** for REST requests
-- **SSE** for real-time notifications
+- **SSE** for real-time notifications and AI chunk streaming
 - **Material-UI** (MUI) for UI components
 - **i18next** for translations (English, Hebrew)
 
@@ -42,6 +52,7 @@ A self-paced learning platform for mathematics, offering dynamic question genera
     - JPA (Hibernate) for DB operations
     - SSE endpoints for real-time updates
 - **MySQL** for data storage (user records, questions, notifications, etc.)
+- **Ollama** for local LLM calls and SSE partial chunk responses
 
 ---
 
@@ -51,14 +62,15 @@ A self-paced learning platform for mathematics, offering dynamic question genera
     - **Node.js** (version ≥ 16)
     - **Java** (JDK 17 or above recommended)
     - **Maven** (or the Maven wrapper)
-    - A running **MySQL** instance
+    - **MySQL** instance running locally or accessible
+    - **Ollama** – see [Installing Ollama on PC](#installing-ollama-on-pc) below
 
 2. **Clone the Repository**
    ```bash
-   git clone https://github.com/Mish2000/learning-system-server.git
-   cd learning-system-server
-
-(Adjust paths if your project separates `client` and `server` into subfolders.)
+   git clone https://github.com/Mish2000/learning-system-client.git
+   cd learning-system-client
+   ```
+   Adjust if your project is split into separate folders for `client` and `server`.
 
 3. **Frontend Setup**
     - Navigate to the front-end directory (e.g., `cd client`).
@@ -81,6 +93,51 @@ A self-paced learning platform for mathematics, offering dynamic question genera
       mvn spring-boot:run
       ```
     - By default, it starts on `http://localhost:8080`.
+
+### Installing Ollama on PC
+
+1. **System Requirements**
+    - Ollama typically requires macOS (for official releases).
+    - **For Windows or Linux**: The official Ollama GitHub project provides instructions and builds. Alternatively, you can run Ollama in WSL (Windows Subsystem for Linux) or in Docker.
+    - Make sure you have enough RAM to run large LLMs locally.
+
+2. **Download Ollama**
+    - Visit the [Ollama GitHub](https://github.com/jmorganca/ollama) or official releases.
+    - Choose your platform (macOS / Windows / Linux).
+    - Download the latest `.tar.gz` or `.exe`, as appropriate.
+
+3. **Install Ollama**
+    - On macOS, you can use Homebrew:
+      ```bash
+      brew install ollama/tap/ollama
+      ```
+    - On Windows / Linux, follow the instructions provided on the [Ollama GitHub](https://github.com/jmorganca/ollama). For example:
+      ```bash
+      # Example for .deb-based Linux distribution
+      sudo dpkg -i ollama_<VERSION>_amd64.deb
+ 
+      # Or on Windows, run the .exe installer
+      ```
+    - Confirm Ollama is installed by running:
+      ```bash
+      ollama version
+      ```
+
+4. **Run Ollama**
+    - Start the Ollama service or simply run the CLI.
+    - Make sure it listens on the default port `11434` (or update the Spring Boot code to match your custom port).
+    - If you want a specific model, you can load it. For example:
+      ```bash
+      ollama pull llama2:7b
+      ```
+      Then in your configuration or calls, reference that model name.
+
+5. **Confirm Connection**
+    - By default, the server code calls Ollama at `http://localhost:11434/api/generate`.
+    - Once Ollama is running, you should see it listening on port `11434`.
+    - Use a test call (like `curl http://localhost:11434/api/generate`) to confirm you get a response (you’ll need a proper request body).
+
+Once Ollama is installed and running, the backend code can successfully contact it for local LLM inference.
 
 ---
 
@@ -105,27 +162,33 @@ spring.jpa.hibernate.ddl-auto=update
 ```
 Adjust to your DB details (username, password, schema name, etc.).
 
+**Ollama** typically runs by default at `localhost:11434`. If you change that port, remember to update references in your Java code, specifically in any place referencing `http://localhost:11434`.
+
 ---
 
 ## Running the Project
 
-1. **Start the Backend**  
-   From the server directory:
-   ```bash
-   mvn spring-boot:run
-   ```
-   This launches the Spring Boot server on `http://localhost:8080`.
+1. **Start Ollama**
+    - Run it in a separate terminal, or as a service listening on port `11434`.
 
-2. **Start the Frontend**  
-   From the client directory:
-   ```bash
-   npm run dev
-   ```
-   This typically launches the React app on `http://localhost:5173`.
+2. **Start the Backend**
+    - From the server directory:
+      ```bash
+      mvn spring-boot:run
+      ```
+    - This launches the Spring Boot server on `http://localhost:8080`. It will attempt to reach Ollama at `http://localhost:11434`.
 
-3. **Confirm Connectivity**
+3. **Start the Frontend**
+    - From the client directory:
+      ```bash
+      npm run dev
+      ```
+    - Typically on `http://localhost:5173`.
+
+4. **Confirm Connectivity**
     - Open `http://localhost:5173` in your browser.
     - Try logging in or registering a new account.
+    - Generate a question, ask for AI solution—requests to the SSE endpoint (`/api/ai/stream2`) should yield partial responses from Ollama.
 
 ---
 
@@ -153,7 +216,7 @@ Adjust to your DB details (username, password, schema name, etc.).
 - The **Admin Dashboard** (for admin users) displays global usage metrics, attempts by topic, success rates, and more.
 
 ### 5. Admin Topic Management
-- If you have `ADMIN` role, you see a **Manage Topics** or **Admin** link.
+- If you have an `ADMIN` role, you see a **Manage Topics** or **Admin** link.
 - You can add a **new topic** or a subtopic (attached to a parent).
 - **Delete** is only possible if the topic has no subtopics (i.e., the parent is empty).
 
@@ -166,6 +229,7 @@ Adjust to your DB details (username, password, schema name, etc.).
 - **MySQL** (Data persistence)
 - **Node.js** (≥16)
 - **Maven** (Build + dependency management)
+- **Ollama** (Local LLM calls)
 
 ---
 
@@ -173,6 +237,7 @@ Adjust to your DB details (username, password, schema name, etc.).
 
 1. **Port Conflicts**
     - If 8080 or 5173 is in use, change the port in `application.properties` (server) or `vite.config.js` (client).
+    - If 11434 is in use or you changed the Ollama port, update references in the server code.
 
 2. **Database Connection Errors**
     - Ensure MySQL is running. Verify the username, password, and DB name in your config.
@@ -183,6 +248,10 @@ Adjust to your DB details (username, password, schema name, etc.).
 4. **SSE Not Working**
     - SSE can fail if the browser or proxy blocks event streams. Make sure the environment supports SSE. Inspect the console or network tab for errors.
 
+5. **Ollama Fails to Respond**
+    - Confirm that Ollama is up and running on the correct port.
+    - Try making a direct test call to `http://localhost:11434/api/generate` with a valid JSON body to ensure it’s functioning.
+
 ---
 
 ## Contributing
@@ -191,6 +260,7 @@ Adjust to your DB details (username, password, schema name, etc.).
 2. Create a **feature branch** for your changes.
 3. Commit and push your branch, then open a **Pull Request** describing your changes.
 4. We welcome feedback, bug fixes, and enhancements!
+
 ---
 
 # Dynamic Question Generator Overview
@@ -202,11 +272,12 @@ The application includes a class called `QuestionGeneratorService` that dynamica
 - **Randomization Logic:** Internal parameters, like random number ranges, influence each question.
 
 Each time a user requests a new question, the system:
-- Looks up the requested topic (if provided).
-- Selects the appropriate generation method (e.g., `createAdditionQuestion`, `createCircleQuestion`, etc.).
-- Randomly selects operands (like `a`, `b`, radius, or side length) within a difficulty-specific range.
-- Builds the question text, computes the answer, and generates a series of solution steps by calling methods from `QuestionAlgorithmsFunctions`.
-- Saves the generated question (represented by the `GeneratedQuestion` entity) to the database.
+
+1. Looks up the requested topic (if provided).
+2. Selects the appropriate generation method (e.g., `createAdditionQuestion`, `createCircleQuestion`, etc.).
+3. Randomly selects operands (like `a`, `b`, radius, or side length) within a difficulty-specific range.
+4. Builds the question text, computes the answer, and generates a series of solution steps by calling methods from `QuestionAlgorithmsFunctions`.
+5. Saves the generated question (represented by the `GeneratedQuestion` entity) to the database.
 
 ---
 
@@ -216,7 +287,7 @@ The system differentiates between two main categories:
 
 - **Arithmetic Topics:**  
   Topics such as Addition, Subtraction, Multiplication, Division, and Fractions that generate numeric Q&A.
-  
+
 - **Geometry Topics:**  
   Topics such as Rectangle, Triangle, Circle, and Polygon that produce geometry-based problems (e.g., calculating area, perimeter, or circumference).
 
@@ -230,77 +301,55 @@ Numeric ranges for random number generation are defined by the selected `Difficu
 
 ```java
 switch (difficulty) {
+    case BASIC -> new int[]{1, 10};
     case EASY -> new int[]{1, 30};
     case MEDIUM -> new int[]{1, 100};
     case ADVANCED -> new int[]{1, 1000};
-    default -> new int[]{1, 10};  // BASIC
+    case EXPERT -> new int[]{1, 9999};
 }
 ```
 
-This means:
 - **BASIC:** Generates numbers between 1 and 10.
-- **MEDIUM:** Generates numbers up to 100.
-- **ADVANCED:** Generates numbers up to 1000.
-- (Other levels follow similar logic.)
+- **EASY:** Up to 30.
+- **MEDIUM:** Up to 100.
+- **ADVANCED:** Up to 1,000.
+- **EXPERT:** Up to 9,999.
 
 ---
 
 ## Random Generation of Questions
 
-Depending on the method called, the process varies by question type. Here are a couple of examples:
+Each `createXYZQuestion` method in `QuestionGeneratorService`:
+1. Randomly picks parameters for the exercise.
+2. Constructs a human-readable question string (e.g., "What is 12 ÷ 3?").
+3. Uses `QuestionAlgorithmsFunctions` to generate textual “solution steps.”
 
-### Example: `createAdditionQuestion`
-
-- **Operands:**  
-  Two integers, `a` and `b`, are randomly chosen within the range defined by the current difficulty.
-- **Question Text:**  
-  Formatted as "`{a} + {b} = ?`".
-- **Answer:**  
-  The correct answer is simply `a + b`.
-- **Solution Steps:**  
-  Generated by calling `QuestionAlgorithmsFunctions.simplifyAddition(a, b, answer)`.
-
-### Example: `createCircleQuestion`
-
-- **Parameter:**  
-  A random radius is selected (e.g., from 1 to 10).
-- **Calculations:**
-    - **Area:** Computed as π * r².
-    - **Circumference:** Computed as 2 * π * r (with π approximated as 3.14).
-- **Question Text:**  
-  "Circle with radius {r}. Find its area and circumference."
-- **Answer:**  
-  For instance, "Area: 78.50, Circumference: 31.40".
-- **Solution Steps:**  
-  A detailed, textual explanation is generated to describe how to compute the area and circumference, using methods from `QuestionAlgorithmsFunctions`.
-
-Each `createXYZQuestion(...)` method follows a similar pattern:
-- Randomly picks parameters for the exercise (numbers, shapes, etc.).
-- Constructs a human-readable question string (including necessary instructions, e.g., "Given length = X and width = Y").
-- Calls a solution-simplifying function from `QuestionAlgorithmsFunctions` to produce a step-by-step solution.
+### Example: `createRectangleQuestion`
+```java
+int length = randomInRange(1, 20);
+int width = randomInRange(1, 20);
+int area = length * width;
+int perimeter = 2 * (length + width);
+String questionText = "...";
+String solutionSteps = "...";
+return saveQuestion(questionText, solutionSteps, "Area: " + area + ", Perimeter: " + perimeter, topic, difficulty);
+```
 
 ---
 
 ## Complete Solutions
 
-Every generated question stores its final solution steps in the `GeneratedQuestion.solutionSteps` field. This ensures that when a user opts to view the solution, the UI can display a comprehensive, step-by-step explanation.
-
-- **Arithmetic Operations:**  
-  Functions such as `simplifyAddition`, `simplifySubtraction`, etc., return a series of text lines that detail the fundamental approach.
-- **Geometry Problems:**  
-  The solution steps explain the calculations for area, perimeter, or other properties, step by step.
+Every generated question stores its final solution steps in `GeneratedQuestion.solutionSteps`. When the user clicks **See Steps**, the UI displays these steps in a visually pleasant format (including math expressions with KaTeX, if needed).
 
 ---
 
 ## Summary
 
-In summary, the question generator is:
+- **Topic-Aware** question creation (Arithmetic vs. Geometry).
+- **Difficulty-Based** numeric ranges.
+- **Random** operand selection.
+- **Solution-Provided** for each question.
 
-- **Topic-Aware:** Distinguishes between Arithmetic and Geometry topics.
-- **Difficulty-Based:** Uses difficulty-specific ranges for generating random numbers.
-- **Random:** Provides different operand values with each new question.
-- **Solution-Provided:** Calls dedicated logic to produce a detailed textual explanation.
-
-This modular design, with one generation method per topic, ensures clear organization and leverages a single `QuestionRepository` table for storing generated questions.
+Enjoy exploring the code in `QuestionGeneratorService` and `QuestionAlgorithmsFunctions` to see exactly how each question is formed and solved!
 
 ---
