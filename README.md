@@ -12,7 +12,7 @@ A self-paced learning platform for mathematics, offering dynamic question genera
 - [Features](#features)
 - [Architecture](#architecture)
 - [Installation](#installation)
-    - [Installing Ollama on PC](#installing-ollama-on-pc)
+   - [Installing Ollama on PC](#installing-ollama-on-pc)
 - [Configuration](#configuration)
 - [Running the Project](#running-the-project)
 - [User Guide](#user-guide)
@@ -20,11 +20,11 @@ A self-paced learning platform for mathematics, offering dynamic question genera
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [Dynamic Question Generator Overview](#dynamic-question-generator-overview)
-    - [Topics and Subtopics](#topics-and-subtopics)
-    - [Difficulty Handling](#difficulty-handling)
-    - [Random Generation of Questions](#random-generation-of-questions)
-    - [Complete Solutions](#complete-solutions)
-    - [Summary](#summary)
+   - [Topics and Subtopics](#topics-and-subtopics)
+   - [Difficulty Handling](#difficulty-handling)
+   - [Random Generation of Questions](#random-generation-of-questions)
+   - [Complete Solutions](#complete-solutions)
+   - [Summary](#summary)
 
 ---
 
@@ -48,9 +48,9 @@ A self-paced learning platform for mathematics, offering dynamic question genera
 
 ### Backend
 - **Spring Boot** (Java) featuring:
-    - Spring Security + JWT for user authentication
-    - JPA (Hibernate) for DB operations
-    - SSE endpoints for real-time updates
+   - Spring Security + JWT for user authentication
+   - JPA (Hibernate) for DB operations
+   - SSE endpoints for real-time updates
 - **MySQL** for data storage (user records, questions, notifications, etc.)
 - **Ollama** for local LLM calls and SSE partial chunk responses
 
@@ -59,83 +59,71 @@ A self-paced learning platform for mathematics, offering dynamic question genera
 ## Installation
 
 1. **Prerequisites**
-    - **Node.js** (version ≥ 16)
-    - **Java** (JDK 17 or above recommended)
-    - **Maven** (or the Maven wrapper)
-    - **MySQL** instance running locally or accessible
-    - **Ollama** – see [Installing Ollama on PC](#installing-ollama-on-pc) below
+   - **Node.js** (version ≥ 16)
+   - **Java** (JDK 17 or above recommended)
+   - **Maven** (or the Maven wrapper)
+   - **MySQL** instance running locally or accessible
+   - **Ollama** – see [Installing Ollama on PC](#installing-ollama-on-pc) below
 
 2. **Clone the Repository**
    ```bash
    git clone https://github.com/Mish2000/learning-system-client.git
    cd learning-system-client
    ```
-   Adjust if your project is split into separate folders for `client` and `server`.
+Adjust if your project is split into separate folders for `client` and `server`.
 
 3. **Frontend Setup**
-    - Navigate to the front-end directory (e.g., `cd client`).
-    - Install dependencies:
-      ```bash
-      npm install
-      ```
-    - Start the development server:
-      ```bash
-      npm run dev
-      ```
-    - By default, Vite hosts on `http://localhost:5173`.
+   - Navigate to the front-end directory (e.g., `cd client`).
+   - Install dependencies:
+     ```bash
+     npm install
+     ```
+   - Start the development server:
+     ```bash
+     npm run dev
+     ```
+   - By default, Vite hosts on `http://localhost:5173`.
 
 4. **Backend Setup**
-    - Navigate to your Spring Boot project directory (e.g., `cd server`).
-    - Configure DB credentials in `application.properties` or as environment variables (see [Configuration](#configuration)).
-    - Build or run the application:
-      ```bash
-      mvn clean install
-      mvn spring-boot:run
-      ```
-    - By default, it starts on `http://localhost:8080`.
+   - Navigate to your Spring Boot project directory (e.g., `cd server`).
+   - Configure DB credentials in `application.properties` or as environment variables (see [Configuration](#configuration)).
+   - Build or run the application:
+     ```bash
+     mvn clean install
+     mvn spring-boot:run
+     ```
+   - By default, it starts on `http://localhost:8080`.
 
 ### Installing Ollama on PC
 
-1. **System Requirements**
-    - Ollama typically requires macOS (for official releases).
-    - **For Windows or Linux**: The official Ollama GitHub project provides instructions and builds. Alternatively, you can run Ollama in WSL (Windows Subsystem for Linux) or in Docker.
-    - Make sure you have enough RAM to run large LLMs locally.
+> **Good news — installing Ollama is now a one‑click affair.**  
+> The official website ships native installers for macOS, Windows, and Linux — no home‑brew, tarballs, or manual steps required.
 
-2. **Download Ollama**
-    - Visit the [Ollama GitHub](https://github.com/jmorganca/ollama) or official releases.
-    - Choose your platform (macOS / Windows / Linux).
-    - Download the latest `.tar.gz` or `.exe`, as appropriate.
+1. **Download & Install**
+   - Visit the **official site**: <https://ollama.com/>
+   - Click **Download** and choose the installer for your OS (macOS pkg, Windows exe, or Linux deb/rpm).
+   - Run the installer. It automatically sets up the Ollama service and adds the `ollama` CLI to your PATH.
 
-3. **Install Ollama**
-    - On macOS, you can use Homebrew:
-      ```bash
-      brew install ollama/tap/ollama
-      ```
-    - On Windows / Linux, follow the instructions provided on the [Ollama GitHub](https://github.com/jmorganca/ollama). For example:
-      ```bash
-      # Example for .deb-based Linux distribution
-      sudo dpkg -i ollama_<VERSION>_amd64.deb
- 
-      # Or on Windows, run the .exe installer
-      ```
-    - Confirm Ollama is installed by running:
-      ```bash
-      ollama version
-      ```
+2. **Verify the Installation**
+   ```bash
+   ollama --version
+   ```
+   You should see the installed version printed in the terminal.
 
-4. **Run Ollama**
-    - Start the Ollama service or simply run the CLI.
-    - Make sure it listens on the default port `11434` (or update the Spring Boot code to match your custom port).
-    - If you want a specific model, you can load it. For example:
-      ```bash
-      ollama pull llama2:7b
-      ```
-      Then in your configuration or calls, reference that model name.
+3. **(Optional) Pull a Model**
+   The first time you run a model, Ollama will download it automatically. You can also pull explicitly:
+   ```bash
+   ollama pull gemma3:27b
+   ```
+   Replace `gemma3:27b` with any model/tag you prefer.
 
-5. **Confirm Connection**
-    - By default, the server code calls Ollama at `http://localhost:11434/api/generate`.
-    - Once Ollama is running, you should see it listening on port `11434`.
-    - Use a test call (like `curl http://localhost:11434/api/generate`) to confirm you get a response (you’ll need a proper request body).
+4. **Ports & Connectivity**
+   - Ollama listens on **`http://localhost:11434`** by default — this matches the Spring‑Boot configuration.
+   - To confirm it is reachable, try:
+     ```bash
+     curl http://localhost:11434
+     ```
+     (You should receive a simple JSON response like `{"status":"ok"}`.)
 
 Once Ollama is installed and running, the backend code can successfully contact it for local LLM inference.
 
@@ -169,26 +157,26 @@ Adjust to your DB details (username, password, schema name, etc.).
 ## Running the Project
 
 1. **Start Ollama**
-    - Run it in a separate terminal, or as a service listening on port `11434`.
+   - The installer starts it automatically; if you stopped it, run `ollama serve` or launch the desktop app (macOS).
 
 2. **Start the Backend**
-    - From the server directory:
-      ```bash
-      mvn spring-boot:run
-      ```
-    - This launches the Spring Boot server on `http://localhost:8080`. It will attempt to reach Ollama at `http://localhost:11434`.
+   - From the server directory:
+     ```bash
+     mvn spring-boot:run
+     ```
+   - This launches the Spring Boot server on `http://localhost:8080`. It will attempt to reach Ollama at `http://localhost:11434`.
 
 3. **Start the Frontend**
-    - From the client directory:
-      ```bash
-      npm run dev
-      ```
-    - Typically on `http://localhost:5173`.
+   - From the client directory:
+     ```bash
+     npm run dev
+     ```
+   - Typically on `http://localhost:5173`.
 
 4. **Confirm Connectivity**
-    - Open `http://localhost:5173` in your browser.
-    - Try logging in or registering a new account.
-    - Generate a question, ask for AI solution—requests to the SSE endpoint (`/api/ai/stream2`) should yield partial responses from Ollama.
+   - Open `http://localhost:5173` in your browser.
+   - Try logging in or registering a new account.
+   - Generate a question, ask for AI solution—requests to the SSE endpoint (`/api/ai/stream2`) should yield partial responses from Ollama.
 
 ---
 
@@ -236,21 +224,21 @@ Adjust to your DB details (username, password, schema name, etc.).
 ## Troubleshooting
 
 1. **Port Conflicts**
-    - If 8080 or 5173 is in use, change the port in `application.properties` (server) or `vite.config.js` (client).
-    - If 11434 is in use or you changed the Ollama port, update references in the server code.
+   - If 8080 or 5173 is in use, change the port in `application.properties` (server) or `vite.config.js` (client).
+   - If 11434 is in use or you changed the Ollama port, update references in the server code.
 
 2. **Database Connection Errors**
-    - Ensure MySQL is running. Verify the username, password, and DB name in your config.
+   - Ensure MySQL is running. Verify the username, password, and DB name in your config.
 
 3. **JWT or 401 Unauthorized**
-    - Check that your token is stored in `localStorage` after login. The frontend automatically sends it in the `Authorization` header.
+   - Check that your token is stored in `localStorage` after login. The frontend automatically sends it in the `Authorization` header.
 
 4. **SSE Not Working**
-    - SSE can fail if the browser or proxy blocks event streams. Make sure the environment supports SSE. Inspect the console or network tab for errors.
+   - SSE can fail if the browser or proxy blocks event streams. Make sure the environment supports SSE. Inspect the console or network tab for errors.
 
 5. **Ollama Fails to Respond**
-    - Confirm that Ollama is up and running on the correct port.
-    - Try making a direct test call to `http://localhost:11434/api/generate` with a valid JSON body to ensure it’s functioning.
+   - Confirm that Ollama is up and running on the correct port.
+   - Try making a direct test call to `http://localhost:11434/api/generate` with a valid JSON body to ensure it’s functioning.
 
 ---
 
@@ -353,3 +341,4 @@ Every generated question stores its final solution steps in `GeneratedQuestion.s
 Enjoy exploring the code in `QuestionGeneratorService` and `QuestionAlgorithmsFunctions` to see exactly how each question is formed and solved!
 
 ---
+```

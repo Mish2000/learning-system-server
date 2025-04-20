@@ -29,7 +29,7 @@ public class StreamingOllamaService {
 
         new Thread(() -> {
             Map<String, Object> requestBody = Map.of(
-                    "model", "deepseek-r1:14b",
+                    "model", "gemma3:27b",
                     "prompt", "Q: " + questionText + "\nA:",
                     "stream", true,
                     "temperature", 0.6,
