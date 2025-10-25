@@ -1,5 +1,8 @@
 package com.learningsystemserver.config;
 
+import com.learningsystemserver.services.JwtAuthenticationFilter;
+import com.learningsystemserver.services.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -11,72 +14,85 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.learningsystemserver.services.JwtAuthenticationFilter;
-import com.learningsystemserver.services.UserDetailsServiceImpl;
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService;
+    private final UserDetailsService userDetailsService;
+    private final JwtService jwtService;
 
-    public SecurityConfig(UserDetailsServiceImpl userDetailsService) {
-        this.userDetailsService = userDetailsService;
+    @Value("${app.frontend.origin:http://localhost:5173}")
+    private String frontendOrigin;
+
+    // ⬇️ REMOVE constructor injection of PasswordEncoder to avoid the self-cycle
+    public SecurityConfig(UserDetailsService uds, JwtService jwtService) {
+        this.userDetailsService = uds;
+        this.jwtService = jwtService;
     }
 
+    // ⬇️ either static @Bean or a normal @Bean is fine; static is the safest for cfg-class init
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    public static PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        var jwtFilter = new JwtAuthenticationFilter(jwtService, userDetailsService);
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
-        http.cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable);
-
-        http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/notifications/**").authenticated()
-                .requestMatchers("/api/ai/stream").permitAll()
-                .requestMatchers("/api/ai/**").permitAll()
-
-                .requestMatchers(HttpMethod.GET, "/api/topics/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/topics/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/topics/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/topics/**").hasRole("ADMIN")
-
-                .requestMatchers("/api/questions/**").permitAll()
-                .requestMatchers("/api/sse/**").permitAll()
-                .requestMatchers("/api/dashboard/user").authenticated()
-                .requestMatchers("/api/dashboard/admin").hasRole("ADMIN")
-                .anyRequest().authenticated()
-        );
-
-        http.sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        );
-
-        http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/login", "/api/auth/register",
+                                "/api/auth/refresh", "/api/auth/logout").permitAll()
+                        .requestMatchers("/api/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/favicon.ico", "/").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(
+                        jwtFilter,
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class
+                )
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> res.setStatus(401)));
 
         return http.build();
     }
 
+    @Bean
+    public AuthenticationProvider authProvider(PasswordEncoder encoder) {
+        var provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(encoder); // method injection avoids the cycle
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
+        return cfg.getAuthenticationManager();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        var cors = new CorsConfiguration();
+        cors.setAllowedOrigins(List.of(frontendOrigin));
+        cors.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        cors.setAllowedHeaders(List.of("*"));
+        cors.setAllowCredentials(true);
+        cors.setMaxAge(3600L);
+
+        var source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", cors);
+        return source;
+    }
 }
