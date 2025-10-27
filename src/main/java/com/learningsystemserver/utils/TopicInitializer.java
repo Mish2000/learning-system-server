@@ -1,4 +1,4 @@
-package com.learningsystemserver.config;
+package com.learningsystemserver.utils;
 
 import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.Topic;

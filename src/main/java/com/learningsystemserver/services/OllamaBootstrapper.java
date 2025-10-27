@@ -6,12 +6,15 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.time.Duration;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 
 @Slf4j
 @Component
@@ -52,6 +55,21 @@ public class OllamaBootstrapper implements ApplicationRunner {
             pb.redirectErrorStream(true);
             ollamaProcess = pb.start();
             log.info("Started `ollama serve` (pid: {}).", ollamaProcess.pid());
+
+            Thread gobbler = new Thread(() -> {
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(ollamaProcess.getInputStream()))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        log.debug("[ollama] {}", line);
+                    }
+                } catch (IOException ioe) {
+                    log.debug("Ollama output reader finished: {}", ioe.getMessage());
+                }
+            }, "ollama-stdout-gobbler");
+            gobbler.setDaemon(true);
+            gobbler.start();
+
         } catch (IOException e) {
             log.error("Failed to start `ollama serve`. Is Ollama installed and in PATH?", e);
         }

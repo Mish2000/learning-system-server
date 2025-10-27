@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.regex.Pattern;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -36,6 +38,9 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+
     @Value("${security.cookies.secure:false}")
     private boolean secureCookies;
 
@@ -43,14 +48,14 @@ public class AuthController {
             AuthenticationManager am,
             UserDetailsService uds,
             JwtService jwtService,
-            UserRepository userRepository,        // ⬅ add
-            PasswordEncoder passwordEncoder       // ⬅ add
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.authenticationManager = am;
         this.userDetailsService = uds;
         this.jwtService = jwtService;
-        this.userRepository = userRepository;     // ⬅ add
-        this.passwordEncoder = passwordEncoder;   // ⬅ add
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/register")
@@ -76,31 +81,44 @@ public class AuthController {
         u.setUsername(username);
         u.setEmail(email);
         u.setPassword(passwordEncoder.encode(password));
-        u.setRole(Role.USER); // default role
+        u.setRole(Role.USER);
         userRepository.save(u);
 
-        // We return 200 OK with no cookies (user logs in afterward).
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
         try {
-            var auth = new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword());
-            authenticationManager.authenticate(auth);
+            final String rawEmail = req.getEmail() == null ? "" : req.getEmail().trim();
+            if (!EMAIL_PATTERN.matcher(rawEmail).matches()) {
+                return ResponseEntity.status(401).body("Login requires a valid email address.");
+            }
 
-            var user = userDetailsService.loadUserByUsername(req.getEmail());
-            String access = jwtService.generateAccessToken(user);
-            String refresh = jwtService.generateRefreshToken(user);
+            var userOpt = userRepository.findByEmail(rawEmail);
+            if (userOpt.isEmpty()) {
+                throw new BadCredentialsException("Invalid credentials");
+            }
 
-            var accessCookie = CookieUtils.accessCookie(access, secureCookies);
+            var username = userOpt.get().getUsername();
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, req.getPassword())
+            );
+
+            var userDetails = userDetailsService.loadUserByUsername(username);
+            String access = jwtService.generateAccessToken(userDetails);
+            String refresh = jwtService.generateRefreshToken(userDetails);
+
+            var accessCookie  = CookieUtils.accessCookie(access,  secureCookies);
             var refreshCookie = CookieUtils.refreshCookie(refresh, secureCookies);
 
             var headers = new HttpHeaders();
             headers.add(HttpHeaders.SET_COOKIE, accessCookie.toString());
             headers.add(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
-            String role = user.getAuthorities().stream().findFirst().map(Object::toString).orElse("USER");
+            String role = userDetails.getAuthorities().stream()
+                    .findFirst().map(Object::toString).orElse("USER");
+
             return ResponseEntity.ok().headers(headers).body(new LoginResponse(role));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(401).body("Invalid credentials");

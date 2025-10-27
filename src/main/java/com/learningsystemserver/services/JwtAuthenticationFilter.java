@@ -1,4 +1,3 @@
-// src/main/java/com/learningsystemserver/services/JwtAuthenticationFilter.java
 package com.learningsystemserver.services;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -94,4 +93,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return true;
+    }
+
+    @Override
+    protected boolean shouldNotFilterErrorDispatch() {
+        return true;
+    }
+
 }
+

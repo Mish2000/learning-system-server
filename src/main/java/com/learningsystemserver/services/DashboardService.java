@@ -9,6 +9,7 @@ import com.learningsystemserver.repositories.UserQuestionHistoryRepository;
 import com.learningsystemserver.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +25,7 @@ public class DashboardService {
     private final UserQuestionHistoryRepository historyRepository;
     private final NotificationService notificationService;
 
+    @Transactional(readOnly = true)
     public UserDashboardResponse buildUserDashboard(String username) throws InvalidInputException {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new InvalidInputException(
