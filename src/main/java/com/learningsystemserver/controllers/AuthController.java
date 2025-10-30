@@ -1,6 +1,8 @@
 package com.learningsystemserver.controllers;
 
 import com.learningsystemserver.dtos.requests.RegisterRequest;
+import com.learningsystemserver.dtos.responses.AuthResponse;
+import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.Role;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.exceptions.AlreadyInUseException;
@@ -17,7 +19,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -59,13 +60,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) throws AlreadyInUseException {
-        String username = req.getUsername() == null ? "" : req.getUsername().trim();
-        String email = req.getEmail() == null ? "" : req.getEmail().trim();
-        String password = req.getPassword() == null ? "" : req.getPassword();
+    public ResponseEntity<AuthResponse> register(
+            @RequestBody RegisterRequest request,
+            @CookieValue(value = "language", required = false) String languageCookie
+    ) throws AlreadyInUseException {
+        String username = request.getUsername() == null ? "" : request.getUsername().trim();
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        String password = request.getPassword() == null ? "" : request.getPassword();
 
         if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
-            return ResponseEntity.badRequest().body("username, email and password are required");
+            return ResponseEntity.status(400).body(null);
         }
 
         if (userRepository.existsByUsername(username)) {
@@ -77,14 +81,28 @@ public class AuthController {
             throw new AlreadyInUseException(
                     String.format(ErrorMessages.EMAIL_ALREADY_EXIST.getMessage(), email));
         }
-        User u = new User();
-        u.setUsername(username);
-        u.setEmail(email);
-        u.setPassword(passwordEncoder.encode(password));
-        u.setRole(Role.USER);
-        userRepository.save(u);
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(Role.USER);
 
-        return ResponseEntity.ok().build();
+        String lang = (request.getInterfaceLanguage() != null && !request.getInterfaceLanguage().isBlank())
+                ? request.getInterfaceLanguage()
+                : (languageCookie != null && !languageCookie.isBlank() ? languageCookie : "en");
+        user.setInterfaceLanguage(lang);
+
+        user.setCurrentDifficulty(DifficultyLevel.BASIC);
+        user.setSubDifficultyLevel(0);
+        user.setOverallProgressLevel(DifficultyLevel.BASIC);
+        user.setOverallProgressScore(1.0);
+
+        userRepository.save(user);
+
+        String token = jwtService.generateToken(user.getUsername());
+        return ResponseEntity.ok(
+                new AuthResponse(token, user.getUsername(), user.getRole().name())
+        );
     }
 
     @PostMapping("/login")
@@ -109,7 +127,7 @@ public class AuthController {
             String access = jwtService.generateAccessToken(userDetails);
             String refresh = jwtService.generateRefreshToken(userDetails);
 
-            var accessCookie  = CookieUtils.accessCookie(access,  secureCookies);
+            var accessCookie = CookieUtils.accessCookie(access, secureCookies);
             var refreshCookie = CookieUtils.refreshCookie(refresh, secureCookies);
 
             var headers = new HttpHeaders();

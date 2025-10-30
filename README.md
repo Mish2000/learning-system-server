@@ -1,344 +1,315 @@
+# Quick Math Learning System (Refactored)
 
----
+*A self-paced learning platform for mathematics with dynamic question generation, **per-subtopic adaptive difficulty**, real-time dashboards, and local LLM assistance.*
 
-# Quick Math Learning System
-
-A self-paced learning platform for mathematics, offering dynamic question generation, automatic difficulty adaptation, user analytics, and more.
+> This README replaces and updates the previous version to reflect the new **adaptive difficulty algorithm** and **practice flow** (no manual difficulty pickers).
 
 ---
 
 ## Table of Contents
 
-- [Features](#features)
-- [Architecture](#architecture)
-- [Installation](#installation)
-   - [Installing Ollama on PC](#installing-ollama-on-pc)
-- [Configuration](#configuration)
-- [Running the Project](#running-the-project)
-- [User Guide](#user-guide)
-- [Technology Stack](#technology-stack)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [Dynamic Question Generator Overview](#dynamic-question-generator-overview)
-   - [Topics and Subtopics](#topics-and-subtopics)
-   - [Difficulty Handling](#difficulty-handling)
-   - [Random Generation of Questions](#random-generation-of-questions)
-   - [Complete Solutions](#complete-solutions)
-   - [Summary](#summary)
+* [What’s New](#whats-new)
+* [Features](#features)
+* [Architecture](#architecture)
+* [Installation](#installation)
+
+    * [Installing Ollama on PC](#installing-ollama-on-pc)
+* [Configuration](#configuration)
+* [Running the Project](#running-the-project)
+* [User Guide](#user-guide)
+
+    * [Registration & Login](#registration--login)
+    * [Practice Flow (Auto Difficulty)](#practice-flow-auto-difficulty)
+    * [Adaptive Difficulty Algorithm (Details)](#adaptive-difficulty-algorithm-details)
+    * [Notifications & Dashboards](#notifications--dashboards)
+    * [Admin Topic Management](#admin-topic-management)
+* [Technology Stack](#technology-stack)
+* [Troubleshooting](#troubleshooting)
+* [Contributing](#contributing)
+* [Dynamic Question Generator Overview](#dynamic-question-generator-overview)
+
+    * [Topics and Subtopics](#topics-and-subtopics)
+    * [Difficulty Handling](#difficulty-handling)
+    * [Random Generation of Questions](#random-generation-of-questions)
+    * [Complete Solutions](#complete-solutions)
+    * [Summary](#summary)
+
+---
+
+## What’s New
+
+**Core behavior changes:**
+
+* **Per-subtopic adaptive difficulty**
+  Difficulty is now determined **automatically** per **user × subtopic**, based solely on the user’s **recent attempts** in that subtopic.
+* **No manual difficulty selection** in the practice UI
+  The previous difficulty selector was removed. The backend returns the current difficulty for the next question.
+* **Hysteresis + streak logic to avoid “yo-yo” effects**
+  Promotions/demotions depend on a rolling window of recent answers and require short streaks, so difficulty won’t jump after one lucky/unlucky answer.
+* **Dashboard difficulties are user-specific and live**
+  `topicDifficulty` (parent) and `subtopicDifficulty` are computed from the user’s own history; parent difficulty aggregates child difficulties.
+
+**API & UI adjustments:**
+
+* **`POST /api/questions/generate`** now ignores any client-provided difficulty. Send only `{ "topicId": <subtopic-or-parent-id> }`. The response includes the difficulty that was chosen.
+* **Practice page** displays the current difficulty from the loaded question payload and updates naturally on “Next Question.”
+* **Dashboard page** shows current per-topic and per-subtopic difficulties in real time via SSE.
 
 ---
 
 ## Features
 
-1. **Dynamic Question Generation** – Users can generate arithmetic and geometry questions at various difficulty levels.
-2. **Adaptive Difficulty** – The system adjusts the user’s difficulty level (and potentially sublevels) based on recent performance.
-3. **Notifications** – Real-time SSE notifications for difficulty changes, sublevel changes, new messages, etc.
-4. **Admin Dashboard** – Real-time usage statistics and the ability to manage question topics (create, delete if empty, etc.).
+1. **Dynamic Question Generation** — Arithmetic & Geometry questions with difficulty-scaled ranges.
+2. **Adaptive Difficulty (Per Subtopic)** — Windowed accuracy + streak-based hysteresis; no manual difficulty picker.
+3. **Real-Time UX** — SSE for user dashboard updates and AI streaming.
+4. **Admin Dashboard** — System-wide stats and topic management (add/remove when allowed).
 
 ---
 
 ## Architecture
 
 ### Frontend
-- **React** (using React Router for navigation)
-- **Axios** for REST requests
-- **SSE** for real-time notifications and AI chunk streaming
-- **Material-UI** (MUI) for UI components
-- **i18next** for translations (English, Hebrew)
+
+* **React** (Vite, React Router)
+* **Axios** for REST
+* **SSE** for dashboards and AI streaming
+* **Material-UI (MUI)** components
+* **i18next** for i18n (English, Hebrew)
 
 ### Backend
-- **Spring Boot** (Java) featuring:
-   - Spring Security + JWT for user authentication
-   - JPA (Hibernate) for DB operations
-   - SSE endpoints for real-time updates
-- **MySQL** for data storage (user records, questions, notifications, etc.)
-- **Ollama** for local LLM calls and SSE partial chunk responses
+
+* **Spring Boot (Java)**
+
+    * Spring Security + JWT
+    * JPA (Hibernate) for persistence
+    * SSE endpoints for live updates
+* **MySQL** as the primary datastore
+* **Ollama** for local LLM generation/streaming
 
 ---
 
 ## Installation
 
 1. **Prerequisites**
-   - **Node.js** (version ≥ 16)
-   - **Java** (JDK 17 or above recommended)
-   - **Maven** (or the Maven wrapper)
-   - **MySQL** instance running locally or accessible
-   - **Ollama** – see [Installing Ollama on PC](#installing-ollama-on-pc) below
 
-2. **Clone the Repository**
+    * Node.js ≥ 16
+    * Java (JDK 17+ recommended)
+    * Maven
+    * MySQL
+    * Ollama (see below)
+
+2. **Clone**
+
    ```bash
-   git clone https://github.com/Mish2000/learning-system-client.git
-   cd learning-system-client
+   git clone <your-repo>
    ```
-Adjust if your project is split into separate folders for `client` and `server`.
 
-3. **Frontend Setup**
-   - Navigate to the front-end directory (e.g., `cd client`).
-   - Install dependencies:
-     ```bash
-     npm install
-     ```
-   - Start the development server:
-     ```bash
-     npm run dev
-     ```
-   - By default, Vite hosts on `http://localhost:5173`.
+3. **Frontend**
 
-4. **Backend Setup**
-   - Navigate to your Spring Boot project directory (e.g., `cd server`).
-   - Configure DB credentials in `application.properties` or as environment variables (see [Configuration](#configuration)).
-   - Build or run the application:
-     ```bash
-     mvn clean install
-     mvn spring-boot:run
-     ```
-   - By default, it starts on `http://localhost:8080`.
+   ```bash
+   cd client
+   npm install
+   npm run dev
+   ```
+
+   Vite serves at `http://localhost:5173` by default.
+
+4. **Backend**
+
+   ```bash
+   cd server
+   mvn clean install
+   mvn spring-boot:run
+   ```
+
+   Spring Boot serves at `http://localhost:8080` by default.
 
 ### Installing Ollama on PC
 
-> **Good news — installing Ollama is now a one‑click affair.**  
-> The official website ships native installers for macOS, Windows, and Linux — no home‑brew, tarballs, or manual steps required.
+1. Download installer from **[https://ollama.com/](https://ollama.com/)**
+2. Install and verify:
 
-1. **Download & Install**
-   - Visit the **official site**: <https://ollama.com/>
-   - Click **Download** and choose the installer for your OS (macOS pkg, Windows exe, or Linux deb/rpm).
-   - Run the installer. It automatically sets up the Ollama service and adds the `ollama` CLI to your PATH.
-
-2. **Verify the Installation**
    ```bash
    ollama --version
    ```
-   You should see the installed version printed in the terminal.
+3. (Optional) Pull a model:
 
-3. **(Optional) Pull a Model**
-   The first time you run a model, Ollama will download it automatically. You can also pull explicitly:
    ```bash
    ollama pull gemma3:27b
    ```
-   Replace `gemma3:27b` with any model/tag you prefer.
-
-4. **Ports & Connectivity**
-   - Ollama listens on **`http://localhost:11434`** by default — this matches the Spring‑Boot configuration.
-   - To confirm it is reachable, try:
-     ```bash
-     curl http://localhost:11434
-     ```
-     (You should receive a simple JSON response like `{"status":"ok"}`.)
-
-Once Ollama is installed and running, the backend code can successfully contact it for local LLM inference.
+4. Ollama listens on `http://localhost:11434` (default).
 
 ---
 
 ## Configuration
 
-You can configure database credentials and other settings in:
-- `src/main/resources/application.properties`, or
-- Environment variables.
+Use environment variables and `application.properties`:
 
-For example, environment variables:
-```bash
-export DATABASE_URL=jdbc:mysql://localhost:3306/your_database_name
-export DATABASE_USERNAME=root
-export DATABASE_PASSWORD=password
-```
-Then in `application.properties`:
 ```properties
 spring.datasource.url=${DATABASE_URL}
 spring.datasource.username=${DATABASE_USERNAME}
 spring.datasource.password=${DATABASE_PASSWORD}
 spring.jpa.hibernate.ddl-auto=update
 ```
-Adjust to your DB details (username, password, schema name, etc.).
 
-**Ollama** typically runs by default at `localhost:11434`. If you change that port, remember to update references in your Java code, specifically in any place referencing `http://localhost:11434`.
+If you change the Ollama port, update references in the backend where the Ollama base URL is used.
 
 ---
 
 ## Running the Project
 
-1. **Start Ollama**
-   - The installer starts it automatically; if you stopped it, run `ollama serve` or launch the desktop app (macOS).
-
-2. **Start the Backend**
-   - From the server directory:
-     ```bash
-     mvn spring-boot:run
-     ```
-   - This launches the Spring Boot server on `http://localhost:8080`. It will attempt to reach Ollama at `http://localhost:11434`.
-
-3. **Start the Frontend**
-   - From the client directory:
-     ```bash
-     npm run dev
-     ```
-   - Typically on `http://localhost:5173`.
-
-4. **Confirm Connectivity**
-   - Open `http://localhost:5173` in your browser.
-   - Try logging in or registering a new account.
-   - Generate a question, ask for AI solution—requests to the SSE endpoint (`/api/ai/stream2`) should yield partial responses from Ollama.
+1. Ensure **Ollama** is running (`ollama serve`).
+2. Start **backend** (`mvn spring-boot:run`).
+3. Start **frontend** (`npm run dev`).
+4. Open `http://localhost:5173` and sign in.
 
 ---
 
 ## User Guide
 
-### 1. Registration & Login
-- Go to `http://localhost:5173`.
-- If you don’t have an account, click **Register**. Supply a username, password, and email.
-- After successfully registering, log in with your new credentials.
+### Registration & Login
 
-### 2. Generating a Question
-- Once logged in, click **Practice** in the navbar.
-- Select a top-level topic (e.g., **Arithmetic** or **Geometry**) and a subtopic (Addition, Circle, etc.).
-- Choose a difficulty level (BASIC, EASY, MEDIUM, etc.).
-- Click **Generate** to create a new, randomized question.
-- Submit an answer and see if it’s correct. You can also expand and view the solution steps.
+* Register a new account or log in with existing credentials.
+* Tokens are managed by the app; authenticated calls include `Authorization` headers automatically.
 
-### 3. Adaptive Difficulty
-- The system looks at your last 5 attempts. If you’re doing well, it may increase your difficulty level or lower your sublevel. If you’re struggling, it can decrease your difficulty or raise the sublevel.
-- **Notifications** pop up in real-time to inform you of difficulty changes or sublevel changes.
+### Practice Flow (Auto Difficulty)
 
-### 4. Notifications & Dashboards
-- A **Notifications** icon in the top-right streams messages via SSE (e.g., “Difficulty changed from EASY to MEDIUM”).
-- The **User Dashboard** shows personal stats like attempts, success rate by topic, and your current difficulty.
-- The **Admin Dashboard** (for admin users) displays global usage metrics, attempts by topic, success rates, and more.
+1. Navigate to **Practice**.
+2. Select a **parent topic** (e.g., Arithmetic / Geometry) and a **subtopic** (e.g., Addition, Triangle, etc.).
+3. Click **Generate**.
 
-### 5. Admin Topic Management
-- If you have an `ADMIN` role, you see a **Manage Topics** or **Admin** link.
-- You can add a **new topic** or a subtopic (attached to a parent).
-- **Delete** is only possible if the topic has no subtopics (i.e., the parent is empty).
+    * **No difficulty picker** — the backend **auto-chooses** difficulty per your **history on that subtopic**.
+    * The response includes `difficultyLevel`, which the UI displays.
+4. Submit your answer. View correctness and expand to see solution steps.
+5. Click **Next Question** to continue — your difficulty will adjust **only** when the algorithm rules trigger (see below).
+
+> **Cold start:** If you’ve never practiced a subtopic, the system defaults to **BASIC** until it gathers enough recent attempts.
+
+### Adaptive Difficulty Algorithm (Details)
+
+**Scope**: per **user × subtopic** (not global).
+
+**Signals**:
+
+* Uses a **rolling window** of your **last N attempts** in the current subtopic (current default N = **8**).
+* Computes **success rate (SR)** over that window.
+* Checks short **streaks** at the head of the window.
+
+**Hysteresis rule (prevents “yo-yo”)**:
+
+* **Promote** one level **if** `SR ≥ 0.80` **and** your **last 2** attempts are **correct**.
+* **Demote** one level **if** `SR ≤ 0.40` **and** your **last 2** attempts are **incorrect**.
+* **Otherwise** keep the current level.
+
+**Defaults**:
+
+* No history for a subtopic ⇒ **BASIC**.
+* Difficulty levels (ordered): `BASIC < EASY < MEDIUM < ADVANCED < EXPERT`.
+
+**Dashboard effects**:
+
+* **Subtopic difficulty** = result of the algorithm above.
+* **Parent topic difficulty** = aggregation of the child subtopics (mean of indices, rounded to nearest level).
+* Dashboard updates automatically via **SSE** after each submission.
+
+> This design avoids spikes caused by historical high averages and responds to **recent** performance while requiring small streaks to confirm a trend.
+
+### Notifications & Dashboards
+
+* **User Dashboard**: attempts, success rates by topic, and **live difficulties** per topic/subtopic.
+* **Admin Dashboard**: global attempts and success rates, plus topic distribution.
+* **SSE** streams keep both dashboards updated after each submission.
+* Optional AI helper streams solution ideas via a dedicated SSE endpoint.
+
+### Admin Topic Management
+
+* Admins can add **topics** and **subtopics**.
+* Deleting a parent requires it to be empty.
 
 ---
 
 ## Technology Stack
 
-- **React** (Vite, React Router, MUI, i18next)
-- **Spring Boot** (SSE, Security, JWT, JPA)
-- **MySQL** (Data persistence)
-- **Node.js** (≥16)
-- **Maven** (Build + dependency management)
-- **Ollama** (Local LLM calls)
+* **Frontend**: React (Vite), MUI, Axios, i18next, SSE
+* **Backend**: Spring Boot, Spring Security (JWT), JPA/Hibernate, SSE
+* **Database**: MySQL
+* **Local LLM**: Ollama
 
 ---
 
 ## Troubleshooting
 
-1. **Port Conflicts**
-   - If 8080 or 5173 is in use, change the port in `application.properties` (server) or `vite.config.js` (client).
-   - If 11434 is in use or you changed the Ollama port, update references in the server code.
-
-2. **Database Connection Errors**
-   - Ensure MySQL is running. Verify the username, password, and DB name in your config.
-
-3. **JWT or 401 Unauthorized**
-   - Check that your token is stored in `localStorage` after login. The frontend automatically sends it in the `Authorization` header.
-
-4. **SSE Not Working**
-   - SSE can fail if the browser or proxy blocks event streams. Make sure the environment supports SSE. Inspect the console or network tab for errors.
-
-5. **Ollama Fails to Respond**
-   - Confirm that Ollama is up and running on the correct port.
-   - Try making a direct test call to `http://localhost:11434/api/generate` with a valid JSON body to ensure it’s functioning.
+* **401 Unauthorized**
+  Ensure you’re logged in and the token is present/valid.
+* **DB connection issues**
+  Verify MySQL credentials and `spring.datasource.*` values.
+* **SSE not updating**
+  Some proxies/browsers can disrupt SSE. Check DevTools **Network** tab and CORS settings.
+* **Auto difficulty “stuck”**
+  The algorithm reacts to **recent** attempts. Complete a few more questions in the same subtopic to trigger a change if warranted.
+* **Cold Start**
+  New subtopic starts at **BASIC** until it has a short history window.
 
 ---
 
 ## Contributing
 
-1. **Fork** or clone this repository.
-2. Create a **feature branch** for your changes.
-3. Commit and push your branch, then open a **Pull Request** describing your changes.
-4. We welcome feedback, bug fixes, and enhancements!
+1. Fork/branch your changes.
+2. Ensure the adaptive difficulty rules remain **pure** (stateless per request, derived from history only).
+3. Add tests or manual steps to verify:
+
+    * Promotions/demotions under the stated thresholds.
+    * First-time subtopic defaulting to BASIC.
+    * Dashboard maps reflect recent changes.
 
 ---
 
 # Dynamic Question Generator Overview
 
-The application includes a class called `QuestionGeneratorService` that dynamically produces new math questions based on several factors:
-
-- **Topic:** Examples include Addition, Subtraction, Fractions, Geometry, etc.
-- **Difficulty Level:** Options such as BASIC, EASY, MEDIUM, ADVANCED, and EXPERT.
-- **Randomization Logic:** Internal parameters, like random number ranges, influence each question.
-
-Each time a user requests a new question, the system:
-
-1. Looks up the requested topic (if provided).
-2. Selects the appropriate generation method (e.g., `createAdditionQuestion`, `createCircleQuestion`, etc.).
-3. Randomly selects operands (like `a`, `b`, radius, or side length) within a difficulty-specific range.
-4. Builds the question text, computes the answer, and generates a series of solution steps by calling methods from `QuestionAlgorithmsFunctions`.
-5. Saves the generated question (represented by the `GeneratedQuestion` entity) to the database.
-
----
+The generator (service layer) creates math questions using the selected **topic/subtopic** and the **auto-chosen difficulty** returned by the adaptive logic.
 
 ## Topics and Subtopics
 
-The system differentiates between two main categories:
+* **Arithmetic**: Addition, Subtraction, Multiplication, Division, Fractions…
+* **Geometry**: Rectangle, Triangle, Circle, Polygon…
 
-- **Arithmetic Topics:**  
-  Topics such as Addition, Subtraction, Multiplication, Division, and Fractions that generate numeric Q&A.
-
-- **Geometry Topics:**  
-  Topics such as Rectangle, Triangle, Circle, and Polygon that produce geometry-based problems (e.g., calculating area, perimeter, or circumference).
-
-When a user selects a parent topic (Arithmetic or Geometry) along with a subtopic, the method to generate the question is chosen based on the lowercase version of the topic name. For example, selecting "Triangle" triggers the `createTriangleQuestion` method.
-
----
+The subtopic decides which `createXxxQuestion` method is used.
 
 ## Difficulty Handling
 
-Numeric ranges for random number generation are defined by the selected `DifficultyLevel`. For example:
+Difficulty controls random ranges for operands. Typical mapping:
 
 ```java
 switch (difficulty) {
-    case BASIC -> new int[]{1, 10};
-    case EASY -> new int[]{1, 30};
-    case MEDIUM -> new int[]{1, 100};
-    case ADVANCED -> new int[]{1, 1000};
-    case EXPERT -> new int[]{1, 9999};
+  case BASIC   -> new int[]{1, 10};
+  case EASY    -> new int[]{1, 30};
+  case MEDIUM  -> new int[]{1, 100};
+  case ADVANCED-> new int[]{1, 1000};
+  case EXPERT  -> new int[]{1, 9999};
 }
 ```
 
-- **BASIC:** Generates numbers between 1 and 10.
-- **EASY:** Up to 30.
-- **MEDIUM:** Up to 100.
-- **ADVANCED:** Up to 1,000.
-- **EXPERT:** Up to 9,999.
-
----
+> The difficulty you see in the Practice page is the **server-selected** level for that subtopic attempt.
 
 ## Random Generation of Questions
 
-Each `createXYZQuestion` method in `QuestionGeneratorService`:
-1. Randomly picks parameters for the exercise.
-2. Constructs a human-readable question string (e.g., "What is 12 ÷ 3?").
-3. Uses `QuestionAlgorithmsFunctions` to generate textual “solution steps.”
+Each `createXYZQuestion` method:
 
-### Example: `createRectangleQuestion`
-```java
-int length = randomInRange(1, 20);
-int width = randomInRange(1, 20);
-int area = length * width;
-int perimeter = 2 * (length + width);
-String questionText = "...";
-String solutionSteps = "...";
-return saveQuestion(questionText, solutionSteps, "Area: " + area + ", Perimeter: " + perimeter, topic, difficulty);
-```
-
----
+1. Samples operands within difficulty-scaled ranges.
+2. Builds a readable question prompt.
+3. Computes the correct answer.
+4. Produces solution steps (via `QuestionAlgorithmsFunctions`).
+5. Persists a `GeneratedQuestion` record.
 
 ## Complete Solutions
 
-Every generated question stores its final solution steps in `GeneratedQuestion.solutionSteps`. When the user clicks **See Steps**, the UI displays these steps in a visually pleasant format (including math expressions with KaTeX, if needed).
-
----
+The UI shows **correctness** and allows expanding **solution steps** (rendered nicely; math supported via KaTeX).
 
 ## Summary
 
-- **Topic-Aware** question creation (Arithmetic vs. Geometry).
-- **Difficulty-Based** numeric ranges.
-- **Random** operand selection.
-- **Solution-Provided** for each question.
+* Topic-aware question creation
+* Difficulty-scaled operand ranges
+* Auto-selected difficulty per **user × subtopic** with **hysteresis**
+* Complete solutions and real-time dashboards
 
-Enjoy exploring the code in `QuestionGeneratorService` and `QuestionAlgorithmsFunctions` to see exactly how each question is formed and solved!
-
----
-```
+Enjoy practicing!

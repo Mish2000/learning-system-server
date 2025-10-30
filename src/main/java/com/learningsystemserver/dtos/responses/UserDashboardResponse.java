@@ -13,6 +13,14 @@ public class UserDashboardResponse {
     private double successRate;
     private Map<String, Long> attemptsByTopic;
     private Map<String, Double> successRateByTopic;
+
     private String currentDifficulty;
     private Integer subDifficultyLevel;
+
+    private Map<String, String> topicDifficulty;
+
+    private Map<String, String> subtopicDifficulty;
+
+    private String overallProgressLevel;
+    private Double overallProgressScore;
 }

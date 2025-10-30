@@ -1,118 +1,132 @@
 package com.learningsystemserver.services;
 
-import com.learningsystemserver.entities.DifficultyLevel;
-import com.learningsystemserver.entities.Topic;
-import com.learningsystemserver.entities.User;
-import com.learningsystemserver.entities.UserQuestionHistory;
-import com.learningsystemserver.exceptions.InvalidInputException;
-import com.learningsystemserver.repositories.UserQuestionHistoryRepository;
-import com.learningsystemserver.repositories.UserRepository;
+import com.learningsystemserver.entities.*;
+import com.learningsystemserver.repositories.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class AdaptiveService {
 
     private final UserRepository userRepository;
+    private final TopicRepository topicRepository;
     private final UserQuestionHistoryRepository historyRepository;
-    private final NotificationService notificationService;
+    private final UserSubtopicProgressRepository progressRepository;
 
-    @Value("${app.adaptive.enableIntermediateLevels:false}")
-    private boolean enableIntermediateLevels;
+    // --- Tunables (industry-style heuristic with hysteresis & cooldown) ---
+    private static final int WINDOW = 10;             // rolling window size
+    private static final double UP_THRESHOLD = 0.75;  // promote threshold in window
+    private static final double DOWN_THRESHOLD = 0.45;// demote threshold in window
+    private static final int UP_STREAK = 3;           // require 3 in a row to move up
+    private static final int DOWN_STREAK = 2;         // require 2 in a row to move down
+    private static final int COOLDOWN_ATTEMPTS = 3;   // minimal attempts between changes
 
-    @Value("${app.adaptive.maxIntermediateSublevels:2}")
-    private int maxIntermediateSublevels;
+    @Transactional(readOnly = true)
+    public DifficultyLevel getDifficultyForSubtopic(Long userId, Long subtopicId) {
+        return progressRepository.findByUserIdAndSubtopicId(userId, subtopicId)
+                .map(UserSubtopicProgress::getCurrentDifficulty)
+                .orElse(DifficultyLevel.BASIC);
+    }
 
-    public void evaluateUserProgress(Long userId) throws InvalidInputException {
-        System.out.println("=== evaluateUserProgress for userId: " + userId + " ===");
-        User user = userRepository.findById(userId).orElseThrow(() ->
-                new InvalidInputException("User does not exist: " + userId)
-        );
+    /**
+     * Called after an attempt is saved. Evaluates ONLY the subtopic just practiced.
+     */
+    @Transactional
+    public void evaluateUserProgress(Long userId, Long subtopicId) {
+        User user = userRepository.findById(userId).orElseThrow();
+        Topic subtopic = topicRepository.findById(subtopicId).orElseThrow();
 
-        List<UserQuestionHistory> lastAttempts = historyRepository.findAll()
-                .stream()
-                .filter(h -> h.getUser().getId().equals(userId))
-                .sorted(Comparator.comparing(UserQuestionHistory::getAttemptTime).reversed())
-                .limit(5)
-                .toList();
+        UserSubtopicProgress progress = progressRepository
+                .findByUserIdAndSubtopicId(userId, subtopicId)
+                .orElseGet(() -> progressRepository.save(
+                        UserSubtopicProgress.builder()
+                                .user(user)
+                                .subtopic(subtopic)
+                                .currentDifficulty(DifficultyLevel.BASIC)
+                                .correctStreak(0)
+                                .wrongStreak(0)
+                                .attemptsSinceLastChange(0)
+                                .lastUpdatedAt(LocalDateTime.now())
+                                .build()
+                ));
 
-        if (lastAttempts.isEmpty()) {
-            System.out.println("No attempts -> no adaptation performed.");
+        // Window of last attempts for this subtopic
+        List<UserQuestionHistory> last = historyRepository
+                .findTop10ByUserIdAndQuestion_Topic_IdOrderByAttemptTimeDesc(userId, subtopicId);
+
+        if (last.isEmpty()) {
+            // nothing to evaluate yet
             return;
         }
 
-        long correctCount = lastAttempts.stream().filter(UserQuestionHistory::isCorrect).count();
-        double successRate = (double) correctCount / lastAttempts.size();
-        System.out.println("Success rate = " + successRate);
-
-        DifficultyLevel oldDifficulty = (user.getCurrentDifficulty() != null)
-                ? user.getCurrentDifficulty()
-                : DifficultyLevel.BASIC;
-
-        DifficultyLevel newDifficulty = oldDifficulty;
-
-        if (successRate < 0.4) {
-            DifficultyLevel lowered = getLowerDifficulty(oldDifficulty);
-            if (!lowered.equals(oldDifficulty)) {
-                newDifficulty = lowered;
-                System.out.println("Lowering difficulty from " + oldDifficulty + " to " + newDifficulty);
-                Topic recentTopic = lastAttempts.get(0).getQuestion().getTopic();
-                String topicName = (recentTopic != null) ? recentTopic.getName() : "this topic";
-                notificationService.notifyUserDifficulty(user.getUsername(), topicName);
-
-            } else {
-                System.out.println("Already at BASIC, cannot lower further.");
-            }
-        }
-        else if (successRate > 0.8) {
-            DifficultyLevel higher = getHigherDifficulty(oldDifficulty);
-            if (!higher.equals(oldDifficulty)) {
-                newDifficulty = higher;
-                System.out.println("Raising difficulty from " + oldDifficulty + " to " + newDifficulty);
-
-                Topic recentTopic = lastAttempts.get(0).getQuestion().getTopic();
-                String topicName = (recentTopic != null) ? recentTopic.getName() : "this topic";
-                notificationService.notifyUserSuccess(user.getUsername(), topicName);
-
-            } else {
-                System.out.println("Already at EXPERT, cannot raise further.");
-            }
-        }
-        else {
-            System.out.println("User's success rate is moderate; no difficulty change.");
+        boolean lastCorrect = last.get(0).isCorrect();
+        if (lastCorrect) {
+            progress.setCorrectStreak(progress.getCorrectStreak() + 1);
+            progress.setWrongStreak(0);
+        } else {
+            progress.setWrongStreak(progress.getWrongStreak() + 1);
+            progress.setCorrectStreak(0);
         }
 
-        user.setCurrentDifficulty(newDifficulty);
-        user.setSubDifficultyLevel(0);
-        userRepository.save(user);
+        int attemptsSinceLastChange = progress.getAttemptsSinceLastChange() + 1;
 
-        System.out.println("=== Final difficulty = " + newDifficulty + " ===");
+        long correct = last.stream().filter(UserQuestionHistory::isCorrect).count();
+        double rate = (double) correct / last.size();
+
+        DifficultyLevel before = progress.getCurrentDifficulty();
+        DifficultyLevel after = before;
+
+        boolean canChange = attemptsSinceLastChange >= COOLDOWN_ATTEMPTS;
+
+        if (canChange && rate >= UP_THRESHOLD && progress.getCorrectStreak() >= UP_STREAK) {
+            after = bumpUp(before);
+            attemptsSinceLastChange = 0;
+        } else if (canChange && rate <= DOWN_THRESHOLD && progress.getWrongStreak() >= DOWN_STREAK) {
+            after = bumpDown(before);
+            attemptsSinceLastChange = 0;
+        }
+
+        progress.setCurrentDifficulty(after);
+        progress.setAttemptsSinceLastChange(attemptsSinceLastChange);
+        progress.setLastUpdatedAt(LocalDateTime.now());
+        progressRepository.save(progress);
+
+        // Backward-compat: keep user's legacy 'currentDifficulty' in sync with what they just practiced.
+        // (Existing UI pieces that still read this will keep working.)
+        if (user.getCurrentDifficulty() != after) {
+            user.setCurrentDifficulty(after);
+            user.setSubDifficultyLevel(0);
+            userRepository.save(user);
+        }
     }
 
+    // --- Helper mapping for DifficultyLevel order ---
+    private static final Map<DifficultyLevel, Integer> ORDER = Map.of(
+            DifficultyLevel.BASIC, 1,
+            DifficultyLevel.EASY, 2,
+            DifficultyLevel.MEDIUM, 3,
+            DifficultyLevel.ADVANCED, 4,
+            DifficultyLevel.EXPERT, 5
+    );
 
-    private DifficultyLevel getLowerDifficulty(DifficultyLevel d) {
-        return switch (d) {
-            case MEDIUM -> DifficultyLevel.EASY;
-            case ADVANCED -> DifficultyLevel.MEDIUM;
-            case EXPERT -> DifficultyLevel.ADVANCED;
-            case EASY -> DifficultyLevel.BASIC;
-            default -> DifficultyLevel.BASIC;
-        };
+    private DifficultyLevel bumpUp(DifficultyLevel d) {
+        return ORDER.entrySet().stream()
+                .filter(e -> e.getValue() == Math.min(5, ORDER.get(d) + 1))
+                .map(Map.Entry::getKey)
+                .findFirst().orElse(d);
     }
 
-    private DifficultyLevel getHigherDifficulty(DifficultyLevel d) {
-        return switch (d) {
-            case BASIC -> DifficultyLevel.EASY;
-            case EASY -> DifficultyLevel.MEDIUM;
-            case MEDIUM -> DifficultyLevel.ADVANCED;
-            case ADVANCED -> DifficultyLevel.EXPERT;
-            default -> DifficultyLevel.EXPERT;
-        };
+    private DifficultyLevel bumpDown(DifficultyLevel d) {
+        return ORDER.entrySet().stream()
+                .filter(e -> e.getValue() == Math.max(1, ORDER.get(d) - 1))
+                .map(Map.Entry::getKey)
+                .findFirst().orElse(d);
     }
 }
-

@@ -45,7 +45,7 @@ public class UserHistoryService {
                 .build();
         historyRepository.save(history);
 
-        adaptiveService.evaluateUserProgress(userId);
+        adaptiveService.evaluateUserProgress(userId, question.getTopic().getId());
 
         UserDashboardResponse userData = dashboardService.buildUserDashboard(user.getUsername());
         SseDashboardController.pushUserDash(user.getId(), userData);
@@ -55,6 +55,4 @@ public class UserHistoryService {
             SseDashboardController.pushAdminDash(user.getId(), adminData);
         }
     }
-
 }
-
