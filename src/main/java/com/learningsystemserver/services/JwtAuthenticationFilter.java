@@ -1,5 +1,6 @@
 package com.learningsystemserver.services;
 
+import com.learningsystemserver.utils.CookieUtils;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,10 +31,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final boolean secureCookies;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService uds) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService uds, boolean secureCookies) {
         this.jwtService = jwtService;
         this.userDetailsService = uds;
+        this.secureCookies = secureCookies;
     }
 
     @Override
@@ -51,30 +54,65 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        final String jwt = resolveToken(request);
-        if (!StringUtils.hasText(jwt)) {
+        String access = resolveToken(request);
+
+        // If we have no access cookie/header — try sliding refresh using refresh cookie.
+        if (!StringUtils.hasText(access)) {
+            tryRefreshAndAuthenticate(request, response);
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            final String username = jwtService.extractUsername(jwt);
+            final String username = jwtService.extractUsername(access);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var userDetails = userDetailsService.loadUserByUsername(username);
-                if (jwtService.isTokenValid(jwt, userDetails)) {
+                if (jwtService.isTokenValid(access, userDetails)) {
                     var authToken = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    // Token present but not valid — try sliding refresh.
+                    tryRefreshAndAuthenticate(request, response);
                 }
             }
-        } catch (ExpiredJwtException ignored) {
-            // Let it through as anonymous; refresh flow / 401 will handle it.
+        } catch (ExpiredJwtException e) {
+            // Access expired — try sliding refresh and proceed.
+            tryRefreshAndAuthenticate(request, response);
         } catch (Exception ignored) {
             // Never break the chain on parsing errors.
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void tryRefreshAndAuthenticate(HttpServletRequest request, HttpServletResponse response) {
+        String refresh = resolveCookie(request);
+        if (!StringUtils.hasText(refresh)) {
+            return;
+        }
+        try {
+            // Only accept real, non-expired refresh tokens
+            if (!jwtService.isExpired(refresh)
+                    && "refresh".equals(jwtService.extractClaim(refresh, c -> (String) c.get("typ")))) {
+
+                String username = jwtService.extractUsername(refresh);
+                var userDetails = userDetailsService.loadUserByUsername(username);
+
+                // Mint new access
+                String newAccess = jwtService.generateAccessToken(userDetails);
+                var accessCookie = CookieUtils.accessCookie(newAccess, secureCookies);
+                response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+
+                var authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        } catch (Exception ignored) {
+            // If refresh is bad/expired — do nothing; downstream security will return 401.
+        }
     }
 
     private String resolveToken(HttpServletRequest req) {
@@ -94,6 +132,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 
+    private String resolveCookie(HttpServletRequest req) {
+        if (req.getCookies() == null) return null;
+        return Arrays.stream(req.getCookies())
+                .filter(c -> "refresh_token".equals(c.getName()))
+                .findFirst()
+                .map(Cookie::getValue)
+                .orElse(null);
+    }
+
     @Override
     protected boolean shouldNotFilterAsyncDispatch() {
         return true;
@@ -103,6 +150,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilterErrorDispatch() {
         return true;
     }
-
 }
-

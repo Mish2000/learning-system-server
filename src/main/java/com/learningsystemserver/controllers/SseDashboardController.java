@@ -56,6 +56,7 @@ public class SseDashboardController {
                 .orElseThrow(() -> new InvalidInputException("No user found for " + username));
         Long userId = user.getId();
 
+        // 0L = no timeout (let the client/server infra decide)
         SseEmitter emitter = new SseEmitter(0L);
         registerLifecycle(userEmitters, userId, emitter);
 
@@ -101,9 +102,9 @@ public class SseDashboardController {
         return emitter;
     }
 
-    /** Called by services (e.g., UserHistoryService) to push an updated dashboard to the user. */
+    /** Called by services (e.g., history/progress services) to push an updated user dashboard. */
     public static void pushUserDash(Long userId, UserDashboardResponse data) {
-        safeSend(userEmitters, userId, "dashboard", data);
+        safeSend(userEmitters, userId, "userDashboard", data);
     }
 
     /** Called by services to push updated admin dashboard (for ADMIN users). */

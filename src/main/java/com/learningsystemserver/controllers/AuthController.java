@@ -7,8 +7,10 @@ import com.learningsystemserver.entities.Role;
 import com.learningsystemserver.entities.User;
 import com.learningsystemserver.exceptions.AlreadyInUseException;
 import com.learningsystemserver.exceptions.ErrorMessages;
+import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserRepository;
 import com.learningsystemserver.services.JwtService;
+import com.learningsystemserver.services.UserProgressService;
 import com.learningsystemserver.utils.CookieUtils;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,25 +47,29 @@ public class AuthController {
     @Value("${security.cookies.secure:false}")
     private boolean secureCookies;
 
+    private final UserProgressService userProgressService;
+
+
     public AuthController(
             AuthenticationManager am,
             UserDetailsService uds,
             JwtService jwtService,
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder, UserProgressService userProgressService
     ) {
         this.authenticationManager = am;
         this.userDetailsService = uds;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userProgressService = userProgressService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
             @RequestBody RegisterRequest request,
             @CookieValue(value = "language", required = false) String languageCookie
-    ) throws AlreadyInUseException {
+    ) throws AlreadyInUseException, InvalidInputException {
         String username = request.getUsername() == null ? "" : request.getUsername().trim();
         String email = request.getEmail() == null ? "" : request.getEmail().trim();
         String password = request.getPassword() == null ? "" : request.getPassword();
@@ -81,32 +87,35 @@ public class AuthController {
             throw new AlreadyInUseException(
                     String.format(ErrorMessages.EMAIL_ALREADY_EXIST.getMessage(), email));
         }
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.USER);
 
-        String lang = (request.getInterfaceLanguage() != null && !request.getInterfaceLanguage().isBlank())
+        String chosen = (request.getInterfaceLanguage() != null && !request.getInterfaceLanguage().isBlank())
                 ? request.getInterfaceLanguage()
                 : (languageCookie != null && !languageCookie.isBlank() ? languageCookie : "en");
-        user.setInterfaceLanguage(lang);
+        user.setInterfaceLanguage(com.learningsystemserver.utils.LanguageUtils.normalize(chosen));
 
-        user.setCurrentDifficulty(DifficultyLevel.BASIC);
         user.setSubDifficultyLevel(0);
         user.setOverallProgressLevel(DifficultyLevel.BASIC);
         user.setOverallProgressScore(1.0);
 
-        userRepository.save(user);
+        User saved = userRepository.save(user);
+
+        userProgressService.seedForNewUser(saved.getId());
 
         String token = jwtService.generateToken(user.getUsername());
-        return ResponseEntity.ok(
-                new AuthResponse(token, user.getUsername(), user.getRole().name())
-        );
+        return ResponseEntity.ok(new AuthResponse(token, user.getUsername(), user.getRole().name()));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<?> login(
+            @RequestBody LoginRequest req,
+            @CookieValue(value = "language", required = false) String languageCookie
+    ) {
         try {
             final String rawEmail = req.getEmail() == null ? "" : req.getEmail().trim();
             if (!EMAIL_PATTERN.matcher(rawEmail).matches()) {
@@ -123,16 +132,25 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(username, req.getPassword())
             );
 
+            if (languageCookie != null && !languageCookie.isBlank()) {
+                var user = userOpt.get();
+                String normalized = com.learningsystemserver.utils.LanguageUtils.normalize(languageCookie);
+                if (!normalized.equals(user.getInterfaceLanguage())) {
+                    user.setInterfaceLanguage(normalized);
+                    userRepository.save(user);
+                }
+            }
+
             var userDetails = userDetailsService.loadUserByUsername(username);
             String access = jwtService.generateAccessToken(userDetails);
             String refresh = jwtService.generateRefreshToken(userDetails);
 
-            var accessCookie = CookieUtils.accessCookie(access, secureCookies);
-            var refreshCookie = CookieUtils.refreshCookie(refresh, secureCookies);
+            var accessCookie = com.learningsystemserver.utils.CookieUtils.accessCookie(access, secureCookies);
+            var refreshCookie = com.learningsystemserver.utils.CookieUtils.refreshCookie(refresh, secureCookies);
 
-            var headers = new HttpHeaders();
-            headers.add(HttpHeaders.SET_COOKIE, accessCookie.toString());
-            headers.add(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+            var headers = new org.springframework.http.HttpHeaders();
+            headers.add(org.springframework.http.HttpHeaders.SET_COOKIE, accessCookie.toString());
+            headers.add(org.springframework.http.HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
             String role = userDetails.getAuthorities().stream()
                     .findFirst().map(Object::toString).orElse("USER");

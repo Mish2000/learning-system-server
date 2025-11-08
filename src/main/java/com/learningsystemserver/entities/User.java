@@ -24,14 +24,10 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable=false)
-    private Role role = Role.USER;
+    private Role role;
 
     @Column(name = "interface_language", nullable = false, length = 16)
     private String interfaceLanguage;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "current_difficulty", nullable = false)
-    private DifficultyLevel currentDifficulty;
 
     @Column(name = "sub_difficulty_level")
     private Integer subDifficultyLevel;
@@ -54,9 +50,6 @@ public class User {
     public void prePersistDefaults() {
         if (interfaceLanguage == null || interfaceLanguage.isBlank()) {
             interfaceLanguage = "en";
-        }
-        if (currentDifficulty == null) {
-            currentDifficulty = DifficultyLevel.BASIC;
         }
         if (overallProgressLevel == null) {
             overallProgressLevel = DifficultyLevel.BASIC;

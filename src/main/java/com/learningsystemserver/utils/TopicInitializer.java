@@ -54,7 +54,13 @@ public class TopicInitializer implements CommandLineRunner {
 
     private void createTopicIfNotExists(String name,
                                         String description,
-                                        DifficultyLevel difficulty,
+                                        DifficultyLevel ignored,
+                                        String parentName) {
+        createTopicIfNotExists(name, description, parentName);
+    }
+
+    private void createTopicIfNotExists(String name,
+                                        String description,
                                         String parentName) {
         if (topicRepository.existsByName(name)) {
             return;
@@ -63,7 +69,6 @@ public class TopicInitializer implements CommandLineRunner {
         Topic topic = new Topic();
         topic.setName(name);
         topic.setDescription(description);
-        topic.setDifficultyLevel(difficulty);
 
         if (parentName != null) {
             topicRepository.findByName(parentName).ifPresent(topic::setParentTopic);
@@ -71,6 +76,7 @@ public class TopicInitializer implements CommandLineRunner {
 
         topicRepository.save(topic);
     }
+
 }
 
 

@@ -2,14 +2,12 @@ package com.learningsystemserver.services;
 
 import com.learningsystemserver.dtos.responses.AdminDashboardResponse;
 import com.learningsystemserver.dtos.responses.UserDashboardResponse;
-import com.learningsystemserver.entities.DifficultyLevel;
-import com.learningsystemserver.entities.Topic;
-import com.learningsystemserver.entities.User;
-import com.learningsystemserver.entities.UserQuestionHistory;
+import com.learningsystemserver.entities.*;
 import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.TopicRepository;
 import com.learningsystemserver.repositories.UserQuestionHistoryRepository;
 import com.learningsystemserver.repositories.UserRepository;
+import com.learningsystemserver.repositories.UserSubtopicProgressRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +23,8 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final UserQuestionHistoryRepository historyRepository;
     private final TopicRepository topicRepository;
+    private final UserSubtopicProgressRepository progressRepository;
+
 
     // ------------------- Public APIs -------------------
 
@@ -58,7 +58,7 @@ public class DashboardService {
         resp.setSuccessRateByTopic(topicAgg.successRateByTopic);
 
         resp.setCurrentDifficulty(
-                (user.getCurrentDifficulty() == null ? DifficultyLevel.BASIC : user.getCurrentDifficulty()).name()
+                (user.getOverallProgressLevel() == null ? DifficultyLevel.BASIC : user.getOverallProgressLevel()).name()
         );
         resp.setSubDifficultyLevel(user.getSubDifficultyLevel());
 
@@ -110,20 +110,15 @@ public class DashboardService {
                 .filter(t -> t.getParentTopic() != null)
                 .collect(Collectors.groupingBy(t -> t.getParentTopic().getId()));
 
-        // Subtopic difficulty = apply hysteresis on recent attempts (limit 8)
+        // === NEW: get live per-subtopic difficulty from progress table ===
+        Map<Long, DifficultyLevel> liveBySubtopicId = progressRepository.findByUserId(userId).stream()
+                .collect(Collectors.toMap(p -> p.getSubtopic().getId(), UserSubtopicProgress::getCurrentDifficulty));
+
         Map<String, String> subtopicDifficulty = allTopics.stream()
                 .filter(t -> t.getParentTopic() != null) // only subtopics
                 .collect(Collectors.toMap(
                         Topic::getName,
-                        t -> {
-                            List<UserQuestionHistory> recent = userHistories.stream()
-                                    .filter(this::hasTopic)
-                                    .filter(h -> Objects.equals(h.getQuestion().getTopic().getId(), t.getId()))
-                                    .sorted(Comparator.comparing(UserQuestionHistory::getId).reversed())
-                                    .limit(8)
-                                    .toList();
-                            return applyHysteresis(recent).name();
-                        },
+                        t -> liveBySubtopicId.getOrDefault(t.getId(), DifficultyLevel.BASIC).name(),
                         (a, b) -> a,
                         LinkedHashMap::new
                 ));
@@ -153,6 +148,7 @@ public class DashboardService {
 
         return new TopicDifficultyMaps(parentTopicDifficulty, subtopicDifficulty);
     }
+
 
     // ------------------- Aggregation helpers (de-duplicated) -------------------
 

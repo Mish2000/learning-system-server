@@ -21,9 +21,10 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class UserHistoryService {
 
-    private final UserQuestionHistoryRepository historyRepository;
     private final UserRepository userRepository;
     private final GeneratedQuestionRepository questionRepository;
+    private final UserQuestionHistoryRepository historyRepository;
+
     private final AdaptiveService adaptiveService;
     private final DashboardService dashboardService;
 
@@ -43,10 +44,16 @@ public class UserHistoryService {
                 .attemptTime(LocalDateTime.now())
                 .timeTakenSeconds(timeTakenSeconds)
                 .build();
-        historyRepository.save(history);
 
+        // 1) Save the attempt
+        historyRepository.save(history);
+        // 2) Make sure the just-saved attempt is visible to the next query (prevents timing lag)
+        historyRepository.flush();
+
+        // 3) Recompute adaptive difficulty for THIS subtopic immediately after the flush
         adaptiveService.evaluateUserProgress(userId, question.getTopic().getId());
 
+        // 4) Push fresh dashboards (unchanged behavior)
         UserDashboardResponse userData = dashboardService.buildUserDashboard(user.getUsername());
         SseDashboardController.pushUserDash(user.getId(), userData);
 
@@ -55,4 +62,5 @@ public class UserHistoryService {
             SseDashboardController.pushAdminDash(user.getId(), adminData);
         }
     }
+
 }

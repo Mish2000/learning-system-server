@@ -4,13 +4,11 @@ import com.learningsystemserver.dtos.requests.QuestionRequest;
 import com.learningsystemserver.dtos.requests.SubmitAnswerRequest;
 import com.learningsystemserver.dtos.responses.QuestionResponse;
 import com.learningsystemserver.dtos.responses.SubmitAnswerResponse;
-import com.learningsystemserver.entities.DifficultyLevel;
-import com.learningsystemserver.entities.GeneratedQuestion;
-import com.learningsystemserver.entities.User;
-import com.learningsystemserver.entities.UserQuestionHistory;
+import com.learningsystemserver.entities.*;
 import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.UserQuestionHistoryRepository;
 import com.learningsystemserver.repositories.UserRepository;
+import com.learningsystemserver.repositories.UserSubtopicProgressRepository;
 import com.learningsystemserver.services.QuestionGeneratorService;
 import com.learningsystemserver.services.UserHistoryService;
 import lombok.RequiredArgsConstructor;
@@ -36,11 +34,8 @@ public class QuestionController {
     private final UserHistoryService userHistoryService;
     private final UserRepository userRepository;
     private final UserQuestionHistoryRepository historyRepository;
+    private final UserSubtopicProgressRepository progressRepository;
 
-    /**
-     * Generate a question where difficulty is chosen adaptively per user+subtopic.
-     * Manual client difficulty is ignored (side quest requirement).
-     */
     @PostMapping("/generate")
     public QuestionResponse generateQuestion(@RequestBody QuestionRequest request) throws InvalidInputException {
         final Long topicId = request.getTopicId();
@@ -51,16 +46,13 @@ public class QuestionController {
 
         final DifficultyLevel effectiveLevel =
                 (topicId == null)
-                        ? (user.getCurrentDifficulty() != null ? user.getCurrentDifficulty() : DifficultyLevel.BASIC)
+                        ? (user.getOverallProgressLevel() != null ? user.getOverallProgressLevel() : DifficultyLevel.BASIC)
                         : resolveNextDifficultyForSubtopic(user.getId(), topicId);
 
         GeneratedQuestion q = questionService.generateQuestion(topicId, effectiveLevel);
         return toResponse(q);
     }
 
-    /**
-     * Submit an answer; logging is unchanged (preserves your flexible geometry checker).
-     */
     @PostMapping("/submit")
     public SubmitAnswerResponse submitAnswer(@RequestBody SubmitAnswerRequest request)
             throws InvalidInputException {
@@ -75,9 +67,12 @@ public class QuestionController {
         GeneratedQuestion q = questionService.getQuestionById(request.getQuestionId());
 
         boolean isCorrect;
-        String topicName = q.getTopic() != null ? q.getTopic().getName().toLowerCase() : "";
-        if (topicName.contains("rectangle") || topicName.contains("circle") ||
-                topicName.contains("triangle") || topicName.contains("polygon")) {
+        String topicName = (q.getTopic() != null && q.getTopic().getName() != null)
+                ? q.getTopic().getName().toLowerCase()
+                : "";
+
+        if (topicName.contains("rectangle") || topicName.contains("circle")
+                || topicName.contains("triangle") || topicName.contains("polygon")) {
             isCorrect = checkFlexibleAnswer(q.getCorrectAnswer(), request.getUserAnswer());
         } else {
             isCorrect = q.getCorrectAnswer().equalsIgnoreCase(request.getUserAnswer());
@@ -88,11 +83,12 @@ public class QuestionController {
                 q.getId(),
                 isCorrect,
                 request.getUserAnswer(),
-                request.getTimeTakenSeconds()
+                request.getTimeTakenSeconds() // DTO stores SECONDS, matches entity field
         );
 
         return new SubmitAnswerResponse(isCorrect, q.getCorrectAnswer(), q.getSolutionSteps());
     }
+
 
     @GetMapping("/{id}")
     public QuestionResponse getQuestion(@PathVariable Long id) throws InvalidInputException {
@@ -102,40 +98,10 @@ public class QuestionController {
 
     // ----------------- Adaptive difficulty (recent-window + streak hysteresis) -----------------
 
-    private DifficultyLevel resolveNextDifficultyForSubtopic(Long userId, Long topicId) {
-        // Pull recent attempts for this user in this (sub)topic; sort by newest using ID as fallback order.
-        List<UserQuestionHistory> recent = historyRepository.findAll().stream()
-                .filter(h -> h.getUser() != null && Objects.equals(h.getUser().getId(), userId))
-                .filter(h -> h.getQuestion() != null
-                        && h.getQuestion().getTopic() != null
-                        && Objects.equals(h.getQuestion().getTopic().getId(), topicId))
-                .sorted(Comparator.comparing(UserQuestionHistory::getId).reversed())
-                .limit(8)
-                .toList();
-
-        if (recent.isEmpty()) return DifficultyLevel.BASIC;
-
-        DifficultyLevel current = recent.get(0).getQuestion() != null
-                ? recent.get(0).getQuestion().getDifficultyLevel()
-                : DifficultyLevel.BASIC;
-
-        long correct = recent.stream().filter(UserQuestionHistory::isCorrect).count();
-        double sr = correct / (double) recent.size();
-
-        boolean twoUp = recent.stream().limit(2).allMatch(UserQuestionHistory::isCorrect);
-        boolean twoDown = recent.stream().limit(2).noneMatch(UserQuestionHistory::isCorrect);
-
-        // Hysteresis bands to avoid ping-pong:
-        // - Promote only if SR >= 0.8 AND last 2 are correct.
-        // - Demote only if SR <= 0.4 AND last 2 are incorrect.
-        // - Otherwise keep current.
-        if (sr >= 0.80 && twoUp) {
-            return stepUp(current);
-        } else if (sr <= 0.40 && twoDown) {
-            return stepDown(current);
-        } else {
-            return current;
-        }
+    private DifficultyLevel resolveNextDifficultyForSubtopic(Long userId, Long subtopicId) {
+        return progressRepository.findByUserIdAndSubtopicId(userId, subtopicId)
+                .map(UserSubtopicProgress::getCurrentDifficulty)
+                .orElse(DifficultyLevel.BASIC);
     }
 
     private static DifficultyLevel stepUp(DifficultyLevel d) {

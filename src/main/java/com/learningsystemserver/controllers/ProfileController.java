@@ -42,10 +42,12 @@ public class ProfileController {
                 .interfaceLanguage(user.getInterfaceLanguage())
                 .profileImage(base64Image)
                 .subDifficultyLevel(user.getSubDifficultyLevel())
-                .currentDifficulty(user.getCurrentDifficulty() != null ? user.getCurrentDifficulty().name() : "BASIC")
+                // CHANGED: derive from overall instead of user.currentDifficulty
+                .currentDifficulty(
+                        user.getOverallProgressLevel() != null ? user.getOverallProgressLevel().name() : "BASIC"
+                )
                 .build();
     }
-
 
     @PutMapping
     public ProfileResponse updateProfile(@RequestBody UpdateProfileRequest request)
@@ -59,7 +61,7 @@ public class ProfileController {
         if (request.getUsername() != null && !request.getUsername().isEmpty() &&
                 !request.getUsername().equals(user.getUsername())) {
 
-            if(userRepository.existsByUsername(request.getUsername())) {
+            if (userRepository.existsByUsername(request.getUsername())) {
                 throw new AlreadyInUseException("Username already in use.");
             }
             user.setUsername(request.getUsername());
@@ -70,8 +72,8 @@ public class ProfileController {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        if (request.getInterfaceLanguage() != null) {
-            user.setInterfaceLanguage(request.getInterfaceLanguage());
+        if (request.getInterfaceLanguage() != null && !request.getInterfaceLanguage().isBlank()) {
+            user.setInterfaceLanguage(com.learningsystemserver.utils.LanguageUtils.normalize(request.getInterfaceLanguage()));
         }
 
         userRepository.save(user);
@@ -109,6 +111,23 @@ public class ProfileController {
                     .body("Failed to upload image");
         }
     }
+
+    @DeleteMapping({"/image", "/image/delete"})
+    public ResponseEntity<Void> deleteImage() throws InvalidInputException {
+        String principalName = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(principalName)
+                .orElseThrow(() -> new InvalidInputException("No user with username: " + principalName));
+
+        user.setProfileImage(null);
+        userRepository.save(user);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/image/delete")
+    public ResponseEntity<Void> deleteImageAlias() throws InvalidInputException {
+        return deleteImage();
+    }
+
 }
 
 

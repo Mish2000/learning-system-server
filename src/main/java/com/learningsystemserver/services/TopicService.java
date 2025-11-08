@@ -2,7 +2,6 @@ package com.learningsystemserver.services;
 
 import com.learningsystemserver.dtos.requests.TopicRequest;
 import com.learningsystemserver.dtos.responses.TopicResponse;
-import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.Topic;
 import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.TopicRepository;
@@ -10,8 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 import static com.learningsystemserver.exceptions.ErrorMessages.TOPIC_DOES_NOT_EXIST;
 
@@ -25,11 +22,11 @@ public class TopicService {
         Topic topic = new Topic();
         topic.setName(request.getName());
         topic.setDescription(request.getDescription());
-        topic.setDifficultyLevel(request.getDifficultyLevel());
 
         if (request.getParentId() != null) {
-            Optional<Topic> parentOpt = topicRepository.findById(request.getParentId());
-            parentOpt.ifPresent(topic::setParentTopic);
+            topicRepository.findById(request.getParentId()).ifPresent(topic::setParentTopic);
+        } else {
+            topic.setParentTopic(null);
         }
 
         Topic saved = topicRepository.save(topic);
@@ -62,11 +59,8 @@ public class TopicService {
 
         topic.setName(request.getName());
         topic.setDescription(request.getDescription());
-        topic.setDifficultyLevel(request.getDifficultyLevel());
-
         if (request.getParentId() != null) {
-            Optional<Topic> parentOpt = topicRepository.findById(request.getParentId());
-            parentOpt.ifPresent(topic::setParentTopic);
+            topicRepository.findById(request.getParentId()).ifPresent(topic::setParentTopic);
         } else {
             topic.setParentTopic(null);
         }
@@ -84,64 +78,13 @@ public class TopicService {
         resp.setId(topic.getId());
         resp.setName(topic.getName());
         resp.setDescription(topic.getDescription());
-        resp.setDifficultyLevel(topic.getDifficultyLevel().name());
         resp.setParentId(topic.getParentTopic() != null ? topic.getParentTopic().getId() : null);
 
-        if (topic.getSubtopics() != null) {
-            resp.setSubtopicCount(topic.getSubtopics().size());
-        } else {
-            resp.setSubtopicCount(0);
-        }
+        // Count direct children
+        int subCount = topicRepository.findByParentTopicId(topic.getId()).size();
+        resp.setSubtopicCount(subCount);
 
         return resp;
-    }
-
-    private DifficultyLevel aggregateFromChildren(Topic parent) {
-        List<Topic> children = topicRepository.findByParentTopicId(parent.getId());
-        if (children == null || children.isEmpty()) {
-            return parent.getDifficultyLevel() == null ? DifficultyLevel.BASIC : parent.getDifficultyLevel();
-        }
-        double avg = children.stream()
-                .filter(Objects::nonNull)
-                .map(Topic::getDifficultyLevel)
-                .filter(Objects::nonNull)
-                .mapToInt(this::levelIndex)
-                .average()
-                .orElse(1.0);
-
-        int rounded = (int) Math.round(avg);
-        return indexToLevel(rounded);
-    }
-
-    private int levelIndex(DifficultyLevel d) {
-        return switch (d) {
-            case BASIC -> 1;
-            case EASY -> 2;
-            case MEDIUM -> 3;
-            case ADVANCED -> 4;
-            case EXPERT -> 5;
-        };
-    }
-
-    private DifficultyLevel indexToLevel(int i) {
-        return switch (Math.max(1, Math.min(5, i))) {
-            case 1 -> DifficultyLevel.BASIC;
-            case 2 -> DifficultyLevel.EASY;
-            case 3 -> DifficultyLevel.MEDIUM;
-            case 4 -> DifficultyLevel.ADVANCED;
-            default -> DifficultyLevel.EXPERT;
-        };
-    }
-
-    private void recalcAndSaveParentDifficulty(Long parentId) {
-        if (parentId == null) return;
-        topicRepository.findById(parentId).ifPresent(parent -> {
-            DifficultyLevel agg = aggregateFromChildren(parent);
-            if (parent.getDifficultyLevel() != agg) {
-                parent.setDifficultyLevel(agg);
-                topicRepository.save(parent);
-            }
-        });
     }
 
 }

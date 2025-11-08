@@ -37,6 +37,10 @@ public class SecurityConfig {
     @Value("${frontend.origin:http://localhost:5173}")
     private String frontendOrigin;
 
+    // honor cookie security flags (httpOnly, secure) consistently
+    @Value("${security.cookies.secure:false}")
+    private boolean secureCookies;
+
     public SecurityConfig(UserDetailsService userDetailsService, JwtService jwtService) {
         this.userDetailsService = userDetailsService;
         this.jwtService = jwtService;
@@ -44,17 +48,22 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        var jwtFilter = new JwtAuthenticationFilter(jwtService, userDetailsService);
+        // NOTE: matches the updated filter signature used in your project
+        var jwtFilter = new JwtAuthenticationFilter(jwtService, userDetailsService, secureCookies);
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // Allow internal ERROR/ASYNC dispatchers so Security doesn’t try to authorize them
                 .authorizeHttpRequests(auth -> auth
+                        // ✅ allow internal dispatcher flows to avoid /error auth loops
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.ASYNC, DispatcherType.FORWARD).permitAll()
+                        // ✅ allow the error endpoint itself
                         .requestMatchers("/error").permitAll()
+
+                        // CORS preflight convenience
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Public auth endpoints
                         .requestMatchers("/api/auth/login", "/api/auth/register",
@@ -70,16 +79,16 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // JWT filter
+                // Place JWT before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 
-                // Minimal handlers that won’t fail compilation
+                // Be defensive when the container already started the response
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((req, res, e) -> res.setStatus(401))
+                        .authenticationEntryPoint((req, res, e) -> {
+                            if (!res.isCommitted()) res.setStatus(401);
+                        })
                         .accessDeniedHandler((req, res, e) -> {
-                            if (!res.isCommitted()) {
-                                res.setStatus(403);
-                            }
+                            if (!res.isCommitted()) res.setStatus(403);
                         })
                 );
 
@@ -88,15 +97,14 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // Provides a strong one-way hashing for user passwords
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationProvider authProvider(PasswordEncoder encoder) {
+    public AuthenticationProvider authenticationProvider() {
         var provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(encoder);
+        provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 
@@ -109,7 +117,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         var cors = new CorsConfiguration();
         cors.setAllowedOrigins(List.of(frontendOrigin));
-        cors.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("*"));
         cors.setAllowCredentials(true);
         cors.setMaxAge(3600L);
