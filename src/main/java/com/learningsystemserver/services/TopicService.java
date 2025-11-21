@@ -36,19 +36,31 @@ public class TopicService {
     public TopicResponse getTopic(Long id) throws InvalidInputException {
         Topic topic = topicRepository.findById(id)
                 .orElseThrow(() -> new InvalidInputException(
-                        String.format(TOPIC_DOES_NOT_EXIST.getMessage(), id)
+                        String.format(com.learningsystemserver.exceptions.ErrorMessages.TOPIC_DOES_NOT_EXIST.getMessage(), id)
                 ));
+
+        if (topic.isDeleted()) {
+            throw new InvalidInputException(
+                    String.format(com.learningsystemserver.exceptions.ErrorMessages.TOPIC_DOES_NOT_EXIST.getMessage(), id)
+            );
+        }
+
         return mapToResponse(topic);
     }
 
+
     public List<TopicResponse> getTopLevelTopics() {
-        List<Topic> parents = topicRepository.findByParentTopicIsNull();
-        return parents.stream().map(this::mapToResponse).toList();
+        return topicRepository.findByParentTopicIsNullAndDeletedFalse()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     public List<TopicResponse> getSubTopics(Long parentId) {
-        List<Topic> subs = topicRepository.findByParentTopicId(parentId);
-        return subs.stream().map(this::mapToResponse).toList();
+        return topicRepository.findByParentTopicIdAndDeletedFalse(parentId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     public TopicResponse updateTopic(Long id, TopicRequest request) throws InvalidInputException {
@@ -69,22 +81,60 @@ public class TopicService {
         return mapToResponse(updated);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void deleteTopic(Long id) {
-        topicRepository.deleteById(id);
+        topicRepository.findById(id).ifPresent(topic -> {
+            topic.setDeleted(true);
+            topicRepository.save(topic);
+        });
     }
+
+    public List<TopicResponse> getDeletedTopics() {
+        return topicRepository.findByDeletedTrueOrderByNameAsc()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public TopicResponse restoreTopic(Long id) throws InvalidInputException {
+        Topic topic = topicRepository.findById(id)
+                .orElseThrow(() -> new InvalidInputException(
+                        String.format(com.learningsystemserver.exceptions.ErrorMessages.TOPIC_DOES_NOT_EXIST.getMessage(), id)
+                ));
+
+        if (!topic.isDeleted()) {
+            return mapToResponse(topic);
+        }
+
+        if (topic.getParentTopic() != null && topic.getParentTopic().isDeleted()) {
+            throw new InvalidInputException(
+                    "Cannot restore a subtopic before restoring its parent topic."
+            );
+        }
+
+        topic.setDeleted(false);
+        Topic saved = topicRepository.save(topic);
+        return mapToResponse(saved);
+    }
+
 
     private TopicResponse mapToResponse(Topic topic) {
         TopicResponse resp = new TopicResponse();
         resp.setId(topic.getId());
         resp.setName(topic.getName());
         resp.setDescription(topic.getDescription());
-        resp.setParentId(topic.getParentTopic() != null ? topic.getParentTopic().getId() : null);
+        resp.setParentId(topic.getParentTopic() != null
+                ? topic.getParentTopic().getId()
+                : null);
 
-        // Count direct children
-        int subCount = topicRepository.findByParentTopicId(topic.getId()).size();
+        int subCount = topicRepository
+                .findByParentTopicIdAndDeletedFalse(topic.getId())
+                .size();
         resp.setSubtopicCount(subCount);
 
         return resp;
     }
+
 
 }

@@ -100,7 +100,7 @@ public class DashboardService {
     // ------------------- Difficulty maps (per-user) -------------------
 
     private TopicDifficultyMaps computeUserDifficultyMaps(Long userId, List<UserQuestionHistory> userHistories) {
-        List<Topic> allTopics = topicRepository.findAll();
+        List<Topic> allTopics = topicRepository.findByDeletedFalse();
 
         Map<Long, Topic> byId = allTopics.stream()
                 .collect(Collectors.toMap(Topic::getId, Function.identity()));

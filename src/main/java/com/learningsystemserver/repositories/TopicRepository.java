@@ -10,12 +10,14 @@ import java.util.Optional;
 @Repository
 public interface TopicRepository extends JpaRepository<Topic, Long> {
 
-    List<Topic> findByParentTopicIsNull();
+    // active (not deleted)
+    List<Topic> findByParentTopicIsNullAndDeletedFalse();
+    List<Topic> findByParentTopicIdAndDeletedFalse(Long parentId);
+    List<Topic> findByDeletedFalse();
 
-    List<Topic> findByParentTopicId(Long parentId);
+    // deleted (for restore UI)
+    List<Topic> findByDeletedTrueOrderByNameAsc();
 
     Optional<Topic> findByName(String name);
-
     boolean existsByName(String name);
-
 }

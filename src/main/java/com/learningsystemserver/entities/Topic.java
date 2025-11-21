@@ -24,6 +24,10 @@ public class Topic {
     @Column(length = 1000)
     private String description;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_topic_id")
     private Topic parentTopic;

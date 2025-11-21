@@ -53,5 +53,17 @@ public class TopicController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/deleted")
+    public ResponseEntity<List<TopicResponse>> getDeletedTopics() {
+        List<TopicResponse> deleted = topicService.getDeletedTopics();
+        return ResponseEntity.ok(deleted);
+    }
+
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<TopicResponse> restoreTopic(@PathVariable Long id) throws InvalidInputException {
+        TopicResponse restored = topicService.restoreTopic(id);
+        return ResponseEntity.ok(restored);
+    }
+
 }
 

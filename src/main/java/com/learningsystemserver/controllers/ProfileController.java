@@ -32,22 +32,25 @@ public class ProfileController {
         String principalName = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(principalName)
                 .orElseThrow(() -> new InvalidInputException("No user with username: " + principalName));
+
         String base64Image = null;
         if (user.getProfileImage() != null && user.getProfileImage().length > 0) {
             base64Image = Base64.getEncoder().encodeToString(user.getProfileImage());
         }
+
         return ProfileResponse.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .interfaceLanguage(user.getInterfaceLanguage())
                 .profileImage(base64Image)
                 .subDifficultyLevel(user.getSubDifficultyLevel())
-                // CHANGED: derive from overall instead of user.currentDifficulty
                 .currentDifficulty(
                         user.getOverallProgressLevel() != null ? user.getOverallProgressLevel().name() : "BASIC"
                 )
+                .role(user.getRole() != null ? user.getRole().name() : null)
                 .build();
     }
+
 
     @PutMapping
     public ProfileResponse updateProfile(@RequestBody UpdateProfileRequest request)
