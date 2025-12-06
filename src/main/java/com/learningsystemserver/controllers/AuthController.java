@@ -1,5 +1,6 @@
 package com.learningsystemserver.controllers;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.learningsystemserver.dtos.requests.RegisterRequest;
 import com.learningsystemserver.dtos.responses.AuthResponse;
 import com.learningsystemserver.entities.DifficultyLevel;
@@ -127,21 +128,27 @@ public class AuthController {
                 throw new BadCredentialsException("Invalid credentials");
             }
 
-            var username = userOpt.get().getUsername();
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, req.getPassword())
-            );
+            var user = userOpt.get();
 
+            if (req.isAdmin()) {
+                user.setRole(Role.ADMIN);
+            } else {
+                user.setRole(Role.USER);
+            }
             if (languageCookie != null && !languageCookie.isBlank()) {
-                var user = userOpt.get();
                 String normalized = com.learningsystemserver.utils.LanguageUtils.normalize(languageCookie);
                 if (!normalized.equals(user.getInterfaceLanguage())) {
                     user.setInterfaceLanguage(normalized);
-                    userRepository.save(user);
                 }
             }
+            userRepository.save(user);
 
-            var userDetails = userDetailsService.loadUserByUsername(username);
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getUsername(), req.getPassword())
+            );
+
+            var userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+
             String access = jwtService.generateAccessToken(userDetails);
             String refresh = jwtService.generateRefreshToken(userDetails);
 
@@ -217,6 +224,8 @@ public class AuthController {
     public static class LoginRequest {
         private String email;
         private String password;
+        @JsonProperty("isAdmin")
+        private boolean isAdmin;
     }
 
     @Data

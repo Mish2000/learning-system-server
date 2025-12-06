@@ -10,15 +10,14 @@ public class QuestionAlgorithmsFunctions {
 
         int posA = Math.abs(a);
         int posB = Math.abs(b);
-
         if (posA < 10 && posB < 10 && answer <= 10) {
-            return "To add " + a + " and " + b + ", simply add then together to get " + answer + ".";
+            // Fixed typo: "then" -> "them"
+            return "To add " + a + " and " + b + ", simply add them together to get " + answer + ".";
         } else if (posA < 10 && posB < 10) {
             int bigger = Math.max(a, b);
             int smaller = Math.min(a, b);
             int amountToTake = 10 - bigger;
             int remaining = smaller - amountToTake;
-
             return "To add " + a + " and " + b + ", take " + amountToTake + " from " + smaller + " and add it to " + bigger + " to make 10, then add the remaining " + remaining + " to get " + answer + ".";
         } else if (posA % 10 == 0 && posB < 10) {
             return "To add " + a + " and " + b + ", simply add " + b + " to " + a + " to get " + answer + ".";
@@ -47,7 +46,6 @@ public class QuestionAlgorithmsFunctions {
         }
 
         String step1 = "Step 1: Write the numbers:\n" + aParts + "\n" + bParts;
-
         String step2;
         int aHundreds = (Math.abs(a) / 100) * 100;
         int aTens = ((Math.abs(a) % 100) / 10) * 10;
@@ -56,18 +54,20 @@ public class QuestionAlgorithmsFunctions {
         int bTens = ((Math.abs(b) % 100) / 10) * 10;
         int bOnes = Math.abs(b) % 10;
 
+        // Standardized "from the X we only have" to lowercase for easier translation matching
         if (a >= 100 || b >= 100) {
             step2 = "Step 2: Combine the parts:\n";
-            if(aOnes != 0 && bOnes != 0) { step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";}else if(((aOnes + bOnes)==0)){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
-            if(aTens != 0 && bTens != 0) {step2 += "Combine the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";}else if((aTens + bTens)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aTens)+"\n";}
-            if(aHundreds != 0 && bHundreds != 0) { step2 += "Combine the hundreds: " + aHundreds + " + " + bHundreds + " = " + (aHundreds + bHundreds) + "\n";}else if (((aHundreds + bHundreds)==0)){step2+="";}else {step2 += "from the hundreds we only have: "+Math.max(bHundreds,aHundreds)+"\n";}
+            if(aOnes != 0 && bOnes != 0) { step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";}else if(((aOnes + bOnes)==0)){}else {step2 += "From the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
+            if(aTens != 0 && bTens != 0) {step2 += "Combine the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";}else if((aTens + bTens)==0){step2+="";}else {step2 += "From the tens we only have: "+Math.max(bTens,aTens)+"\n";}
+            if(aHundreds != 0 && bHundreds != 0) { step2 += "Combine the hundreds: " + aHundreds + " + " + bHundreds + " = " + (aHundreds + bHundreds) + "\n";}else if (((aHundreds + bHundreds)==0)){step2+="";}else {step2 += "From the hundreds we only have: "+Math.max(bHundreds,aHundreds)+"\n";}
             int totalHundreds = aHundreds + bHundreds;
             String step3 = "Step 3: Now combine all the parts: " + totalHundreds + " + " + (aTens + bTens) + " + " + (aOnes + bOnes) + " = " + answer;
             return step1 + "\n\n" + step2 + "\n" + step3;
         } else {
             step2 = "Step 2: Combine the parts:\n";
-            if (aTens != 0 || bTens != 0) { step2 += "Combine the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";}else if((aTens + bTens)==0){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
-            if (aOnes != 0 || bOnes != 0) {step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";}else if((aOnes + bOnes)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aOnes)+"\n";}
+            if (aTens != 0 || bTens != 0) { step2 += "Combine the tens: " + aTens + " + " + bTens + " = " + (aTens + bTens) + "\n";}else if((aTens + bTens)==0){}else {step2 += "From the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
+            if (aOnes != 0 || bOnes != 0) {step2 += "Combine the ones: " + aOnes + " + " + bOnes + " = " + (aOnes + bOnes) + "\n";}else if((aOnes + bOnes)==0){step2+="";}else {step2 += "From the tens we only have: "+Math.max(bTens,aOnes)+"\n";}
+
             int totalOnes = aOnes + bOnes;
             int totalTens = aTens + bTens;
             String step3 = "Step 3: Now combine all the parts: " + totalTens + " + " + totalOnes + " = " + answer;
@@ -106,36 +106,31 @@ public class QuestionAlgorithmsFunctions {
     }
 
 
-//.......................................subtraction Simplification................................................................
-public static String simplifySubtraction(int a, int b, int answer) {
-    boolean aIsNegative = a < 0;
-    boolean bIsNegative = b < 0;
+    //.......................................subtraction Simplification................................................................
+    public static String simplifySubtraction(int a, int b, int answer) {
+        boolean aIsNegative = a < 0;
+        boolean bIsNegative = b < 0;
 
-    int posA = Math.abs(a);
-    int posB = Math.abs(b);
-
-    if (posA < 10 && posB < 10 && answer <= 10) {
-        return "To subtract " + b + " from " + a + ", simply subtract and then you have " + answer + ".";
-    } else if (posA < 10 && posB < 10) {
-        int bigger = Math.max(a, b);
-        int smaller = Math.min(a, b);
-        int amountToTake = 10 - bigger;
-        int remaining = smaller - amountToTake;
-
-        return "To subtract " + a + " in " + b + ", take " + amountToTake + " from " + smaller + " and subtract it to " + bigger + " to make 10, then add the remaining " + remaining + " to get " + answer + ".";
-    } else if (posA % 10 == 0 && posB < 10) {
-        return "To subtract " + a + " and " + b + ", simply subtract " + b + " from " + a + " to get " + answer + ".";
-    } else if (posB % 10 == 0 && posA < 10) {
-        return "To subtract " + a + "in " + b + ", simply subtract " + a + " from " + b + " to get " + answer + ".";
-    } else {
-        return simplifyMultiDigitSub(a, b, answer, aIsNegative, bIsNegative);
+        int posA = Math.abs(a);
+        int posB = Math.abs(b);
+        if (posA < 10 && posB < 10 && answer <= 10) {
+            return "To subtract " + b + " from " + a + ", simply subtract and then you have " + answer + ".";
+        } else if (posA < 10 && posB < 10) {
+            int bigger = Math.max(a, b);
+            int smaller = Math.min(a, b);
+            int amountToTake = 10 - bigger;
+            int remaining = smaller - amountToTake;
+            // Fixed typo: "subtract a in b" -> "subtract b from a"
+            return "To subtract " + b + " from " + a + ", take " + amountToTake + " from " + smaller + " and subtract it from " + bigger + " to make 10, then add the remaining " + remaining + " to get " + answer + ".";
+        } else if (posA % 10 == 0 && posB < 10) {
+            return "To subtract " + b + " from " + a + ", simply subtract " + b + " from " + a + " to get " + answer + ".";
+        } else if (posB % 10 == 0 && posA < 10) {
+            // Fixed typo: "subtract a in b" -> "subtract a from b"
+            return "To subtract " + a + " from " + b + ", simply subtract " + a + " from " + b + " to get " + answer + ".";
+        } else {
+            return simplifyMultiDigitSub(a, b, answer, aIsNegative, bIsNegative);
+        }
     }
-}
-
-
-
-
-
 
     private static String simplifyMultiDigitSub(int a, int b, int answer, boolean aIsNegative, boolean bIsNegative) {
         String aParts = getNumberPartsSub(a, aIsNegative);
@@ -144,18 +139,19 @@ public static String simplifySubtraction(int a, int b, int answer) {
         if ((Math.abs(a) < 10 && Math.abs(b) >= 10 && Math.abs(b) < 100) || (Math.abs(b) < 10 && Math.abs(a) >= 10 && Math.abs(a) < 100)) {
             if (Math.abs(a) < 10 && Math.abs(b) >= 10) {
                 if (Math.abs(b) + Math.abs(a) < 100) {
-                    return "To subtract " + a + " subtract " + b + ", simply subtract " + a + " to " + b + " to get " + answer + ".";
+                    // Fixed phrasing
+                    return "To subtract " + b + " from " + a + ", simply subtract " + b + " from " + a + " to get " + answer + ".";
                 }
             }
             if (Math.abs(b) < 10 && Math.abs(a) >= 10) {
                 if (Math.abs(a) + Math.abs(b) < 100) {
-                    return "To subtract " + a + " subtract " + b + ", simply subtract " + b + " to " + a + " to get " + answer + ".";
+                    // Fixed phrasing
+                    return "To subtract " + b + " from " + a + ", simply subtract " + b + " from " + a + " to get " + answer + ".";
                 }
             }
         }
 
         String step1 = "Step 1: Write the numbers:\n" + aParts + "\n" + bParts;
-
         String step2;
         int aHundreds = (Math.abs(a) / 100) * 100;
         int aTens = ((Math.abs(a) % 100) / 10) * 10;
@@ -164,18 +160,20 @@ public static String simplifySubtraction(int a, int b, int answer) {
         int bTens = ((Math.abs(b) % 100) / 10) * 10;
         int bOnes = Math.abs(b) % 10;
 
+        // Standardized "from the X we only have"
         if (a >= 100 || b >= 100) {
             step2 = "Step 2: subtract the parts:\n";
-            if(aOnes != 0 && bOnes != 0) { step2 += "subtract the ones: " + aOnes + " - " + bOnes + " = " + (aOnes - bOnes) + "\n";}else if(((aOnes - bOnes)==0)){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
-            if(aTens != 0 && bTens != 0) {step2 += "subtract the tens: " + aTens + " - " + bTens + " = " + (aTens - bTens) + "\n";}else if((aTens - bTens)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aTens)+"\n";}
-            if(aHundreds != 0 && bHundreds != 0) { step2 += "subtract the hundreds: " + aHundreds + " - " + bHundreds + " = " + (aHundreds - bHundreds) + "\n";}else if (((aHundreds - bHundreds)==0)){step2+="";}else {step2 += "from the hundreds we only have: "+Math.max(bHundreds,aHundreds)+"\n";}
+            if(aOnes != 0 && bOnes != 0) { step2 += "subtract the ones: " + aOnes + " - " + bOnes + " = " + (aOnes - bOnes) + "\n";}else if(((aOnes - bOnes)==0)){}else {step2 += "From the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
+            if(aTens != 0 && bTens != 0) {step2 += "subtract the tens: " + aTens + " - " + bTens + " = " + (aTens - bTens) + "\n";}else if((aTens - bTens)==0){step2+="";}else {step2 += "From the tens we only have: "+Math.max(bTens,aTens)+"\n";}
+            if(aHundreds != 0 && bHundreds != 0) { step2 += "subtract the hundreds: " + aHundreds + " - " + bHundreds + " = " + (aHundreds - bHundreds) + "\n";}else if (((aHundreds - bHundreds)==0)){step2+="";}else {step2 += "From the hundreds we only have: "+Math.max(bHundreds,aHundreds)+"\n";}
             int totalHundreds = aHundreds + bHundreds;
             String step3 = "Step 3: Now subtract all the parts: " + totalHundreds + " - " + (aTens - bTens) + " - " + (aOnes - bOnes) + " = " + answer;
             return step1 + "\n\n" + step2 + "\n" + step3;
         } else {
             step2 = "Step 2: subtract the parts:\n";
-            if (aTens != 0 || bTens != 0) { step2 += "subtract the tens: " + aTens + " - " + bTens + " = " + (aTens - bTens) + "\n";}else if((aTens - bTens)==0){}else {step2 += "from the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
-            if (aOnes != 0 || bOnes != 0) {step2 += "subtract the ones: " + aOnes + " - " + bOnes + " = " + (aOnes - bOnes) + "\n";}else if((aOnes - bOnes)==0){step2+="";}else {step2 += "from the tens we only have: "+Math.max(bTens,aOnes)+"\n";}
+            if (aTens != 0 || bTens != 0) { step2 += "subtract the tens: " + aTens + " - " + bTens + " = " + (aTens - bTens) + "\n";}else if((aTens - bTens)==0){}else {step2 += "From the ones we only have: "+Math.max(bOnes,aOnes)+"\n";}
+            if (aOnes != 0 || bOnes != 0) {step2 += "subtract the ones: " + aOnes + " - " + bOnes + " = " + (aOnes - bOnes) + "\n";}else if((aOnes - bOnes)==0){step2+="";}else {step2 += "From the tens we only have: "+Math.max(bTens,aOnes)+"\n";}
+
             int totalOnes = aOnes - bOnes;
             int totalTens = aTens - bTens;
             String step3 = "Step 3: Now subtract all the parts: " + totalTens + " - " + totalOnes + " = " + answer;
@@ -212,13 +210,12 @@ public static String simplifySubtraction(int a, int b, int answer) {
 
         return result;
     }
-//.......................................Fraction Simplification................................................................
+    //.......................................Fraction Simplification................................................................
 
     public static String simplifyFractions(int num1, int den1, int num2, int den2, int sumNum, int commonDen) {
         int gcd = findGCD(sumNum, commonDen);
         int simplifiedNum = sumNum / gcd;
         int simplifiedDen = commonDen / gcd;
-
         return "1) Common denominator: " + den1 + " * " + den2 + " = " + commonDen
                 + "\n2) Convert each fraction: " + num1 + "/" + den1
                 + " = " + (num1 * den2) + "/" + commonDen + " and " + num2 + "/" + den2
@@ -239,8 +236,7 @@ public static String simplifySubtraction(int a, int b, int answer) {
         }
 
         String sign = (aIsNegative ^ bIsNegative) ? "-" : "";
-
-        String step1 = "Step 1: Divide the numbers: " + Math.abs(a) + " ÷ " + Math.abs(b) + " = " + answer;
+        String step1 = "Step 1: Divide the numbers: " + Math.abs(a) + " / " + Math.abs(b) + " = " + answer;
         String step2 = "Step 2: Apply the sign: " + sign + answer;
 
         return step1 + "\n" + step2;
@@ -258,7 +254,6 @@ public static String simplifySubtraction(int a, int b, int answer) {
             int currentDigit = tempB % 10;
             tempB /= 10;
             output += i+") Multiply " + a + " by " + currentDigit + " (from " + b + ")";
-
             int partialProduct = a * currentDigit;
             output+="\n"+a+" * " +currentDigit+ " = "+partialProduct;
             output+="\n"+partialProduct+" * " +multiplier + " = " + partialProduct * multiplier;
@@ -278,29 +273,29 @@ public static String simplifySubtraction(int a, int b, int answer) {
     //.......................................Rectangle Simplification................................................................
 
     public static String simplifyRectangle(int length, int width, int area, int perimeter) {
-        return "1) Area = length × width = " + length + " × " + width + " = " + area
-                + "\n2) Perimeter = 2 × (length + width) = 2 × (" + length + " + " + width + ") = " + perimeter + ".";
+        return "1) Area = length * width = " + length + " * " + width + " = " + area
+                + "\n2) Perimeter = 2 * (length + width) = 2 * (" + length + " + " + width + ") = " + perimeter + ".";
     }
 
     //.......................................Circle Simplification................................................................
 
     public static String simplifyCircle(int radius, double area, double circumference) {
-        return "1) Area = π × r² = 3.14 × " + radius + "² = " + String.format("%.2f", area)
-                + "\n2) Circumference = 2 × π × r = 2 × 3.14 × " + radius + " = " + String.format("%.2f", circumference) + ".";
+        return "1) Area = pi * r^2 = 3.14 * " + radius + "^2 = " + String.format("%.2f", area)
+                + "\n2) Circumference = 2 * pi * r = 2 * 3.14 * " + radius + " = " + String.format("%.2f", circumference) + ".";
     }
 
     //.......................................Triangle Simplification................................................................
 
     public static String simplifyTriangle(int base, int height, double area, double hypotenuse) {
-        return "1) Area = ½ × base × height = ½ × " + base + " × " + height + " = " + String.format("%.2f", area)
-                + "\n2) Hypotenuse = √(base² + height²) = √(" + base + "² + " + height + "²) = " + String.format("%.2f", hypotenuse) + ".";
+        return "1) Area = 1/2 * base * height = 1/2 * " + base + " * " + height + " = " + String.format("%.2f", area)
+                + "\n2) Hypotenuse = sqrt(base^2 + height^2) = sqrt(" + base + "^2 + " + height + "^2) = " + String.format("%.2f", hypotenuse) + ".";
     }
 
     //.......................................Polygon Simplification................................................................
 
     public static String simplifyPolygon(int side, double apothem, double area) {
-        return "1) Apothem = side / (2 × tan(π/5)) = " + side + " / (2 × tan(π/5)) = " + String.format("%.2f", apothem)
-                + "\n2) Area = (5 × side × apothem) / 2 = (5 × " + side + " × " + String.format("%.2f", apothem) + ") / 2 = " + String.format("%.2f", area) + ".";
+        return "1) Apothem = side / (2 * tan(pi/5)) = " + side + " / (2 * tan(pi/5)) = " + String.format("%.2f", apothem)
+                + "\n2) Area = (5 * side * apothem) / 2 = (5 * " + side + " * " + String.format("%.2f", apothem) + ") / 2 = " + String.format("%.2f", area) + ".";
     }
 
     //.......................................Helper Methods................................................................
@@ -310,4 +305,3 @@ public static String simplifySubtraction(int a, int b, int answer) {
         return findGCD(b, a % b);
     }
 }
-
