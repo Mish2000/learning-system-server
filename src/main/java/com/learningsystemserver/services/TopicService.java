@@ -7,8 +7,11 @@ import com.learningsystemserver.exceptions.InvalidInputException;
 import com.learningsystemserver.repositories.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.learningsystemserver.exceptions.ErrorMessages.TOPIC_DOES_NOT_EXIST;
 
@@ -18,13 +21,16 @@ public class TopicService {
 
     private final TopicRepository topicRepository;
 
-    public TopicResponse createTopic(TopicRequest request) {
+    @Transactional
+    public TopicResponse createTopic(TopicRequest request) throws InvalidInputException {
+        validateName(request.getName());
+
         Topic topic = new Topic();
-        topic.setName(request.getName());
+        topic.setName(request.getName().trim());
         topic.setDescription(request.getDescription());
 
         if (request.getParentId() != null) {
-            topicRepository.findById(request.getParentId()).ifPresent(topic::setParentTopic);
+            topic.setParentTopic(requireActiveTopic(request.getParentId()));
         } else {
             topic.setParentTopic(null);
         }
@@ -63,16 +69,18 @@ public class TopicService {
                 .toList();
     }
 
+    @Transactional
     public TopicResponse updateTopic(Long id, TopicRequest request) throws InvalidInputException {
-        Topic topic = topicRepository.findById(id)
-                .orElseThrow(() -> new InvalidInputException(
-                        String.format(TOPIC_DOES_NOT_EXIST.getMessage(), id)
-                ));
+        validateName(request.getName());
 
-        topic.setName(request.getName());
+        Topic topic = requireActiveTopic(id);
+
+        topic.setName(request.getName().trim());
         topic.setDescription(request.getDescription());
         if (request.getParentId() != null) {
-            topicRepository.findById(request.getParentId()).ifPresent(topic::setParentTopic);
+            Topic parent = requireActiveTopic(request.getParentId());
+            validateParentAssignment(id, parent);
+            topic.setParentTopic(parent);
         } else {
             topic.setParentTopic(null);
         }
@@ -81,12 +89,17 @@ public class TopicService {
         return mapToResponse(updated);
     }
 
-    @org.springframework.transaction.annotation.Transactional
-    public void deleteTopic(Long id) {
-        topicRepository.findById(id).ifPresent(topic -> {
-            topic.setDeleted(true);
-            topicRepository.save(topic);
-        });
+    @Transactional
+    public void deleteTopic(Long id) throws InvalidInputException {
+        Topic topic = topicRepository.findById(id)
+                .orElseThrow(() -> topicDoesNotExist(id));
+
+        if (topic.isDeleted()) {
+            return;
+        }
+
+        softDeleteTopicTree(topic, new HashSet<>());
+        topicRepository.save(topic);
     }
 
     public List<TopicResponse> getDeletedTopics() {
@@ -96,7 +109,7 @@ public class TopicService {
                 .toList();
     }
 
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public TopicResponse restoreTopic(Long id) throws InvalidInputException {
         Topic topic = topicRepository.findById(id)
                 .orElseThrow(() -> new InvalidInputException(
@@ -136,5 +149,62 @@ public class TopicService {
         return resp;
     }
 
+    private void validateName(String name) throws InvalidInputException {
+        if (name == null || name.isBlank()) {
+            throw new InvalidInputException("Topic name cannot be blank.");
+        }
+    }
+
+    private Topic requireActiveTopic(Long id) throws InvalidInputException {
+        Topic topic = topicRepository.findById(id)
+                .orElseThrow(() -> topicDoesNotExist(id));
+
+        if (topic.isDeleted()) {
+            throw topicDoesNotExist(id);
+        }
+
+        return topic;
+    }
+
+    private InvalidInputException topicDoesNotExist(Long id) {
+        return new InvalidInputException(
+                String.format(TOPIC_DOES_NOT_EXIST.getMessage(), id)
+        );
+    }
+
+    private void validateParentAssignment(Long topicId, Topic parent) throws InvalidInputException {
+        if (parent.getId() != null && parent.getId().equals(topicId)) {
+            throw new InvalidInputException("A topic cannot be its own parent.");
+        }
+
+        Set<Long> visited = new HashSet<>();
+        Topic current = parent;
+        while (current != null) {
+            Long currentId = current.getId();
+            if (currentId != null && currentId.equals(topicId)) {
+                throw new InvalidInputException("Assigning this parent would create a topic hierarchy cycle.");
+            }
+            if (currentId != null && !visited.add(currentId)) {
+                throw new InvalidInputException("Topic hierarchy contains a cycle.");
+            }
+            current = current.getParentTopic();
+        }
+    }
+
+    private void softDeleteTopicTree(Topic topic, Set<Long> visited) {
+        Long topicId = topic.getId();
+        if (topicId != null && !visited.add(topicId)) {
+            return;
+        }
+
+        topic.setDeleted(true);
+        if (topic.getSubtopics() == null) {
+            return;
+        }
+
+        for (Topic subtopic : topic.getSubtopics()) {
+            softDeleteTopicTree(subtopic, visited);
+        }
+    }
 
 }

@@ -129,8 +129,6 @@ public class QuestionGeneratorService {
         String questionText = "(" + num1 + "/" + den1 + ") + (" + num2 + "/" + den2 + ") = ?";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyFractions(num1, den1, num2, den2, sumNum, commonDen);
         String correctAnswer = sumNum + "/" + commonDen;
-        Double correctAnswerDouble = 0.0;
-        System.out.println("correct answer String"+correctAnswer);
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -142,7 +140,6 @@ public class QuestionGeneratorService {
         String questionText = "Rectangle with length " + length + " and width " + width + ". Find its area and perimeter.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyRectangle(length, width, area, perimeter);
         String correctAnswer = "Area: " + area + ", Perimeter: " + perimeter;
-        System.out.println(correctAnswer);
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -154,7 +151,6 @@ public class QuestionGeneratorService {
         String questionText = "Circle with radius " + radius + ". Find its area and circumference.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyCircle(radius, area, circumference);
         String correctAnswer = "Area: " + String.format("%.2f", area) + ", Circumference: " + String.format("%.2f", circumference);
-        System.out.println(correctAnswer);
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -166,7 +162,6 @@ public class QuestionGeneratorService {
         String questionText = "Right triangle with base " + base + " and height " + height + ". Find its area and hypotenuse.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyTriangle(base, height, area, hypotenuse);
         String correctAnswer = "Area: " + String.format("%.2f", area) + ", Hypotenuse: " + String.format("%.2f", hypotenuse);
-        System.out.println(correctAnswer);
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 
@@ -177,7 +172,6 @@ public class QuestionGeneratorService {
         String questionText = "Regular pentagon with side length " + side + ". Find its approximate area.";
         String solutionSteps = QuestionAlgorithmsFunctions.simplifyPolygon(side, apothem, area);
         String correctAnswer = "Approximate Area: " + String.format("%.2f", area);
-        System.out.println(correctAnswer);
         return saveQuestion(questionText, solutionSteps, correctAnswer, topic, difficulty);
     }
 

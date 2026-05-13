@@ -4,11 +4,13 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.core.env.Environment;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -17,6 +19,8 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
+
+    private static final int MIN_HS256_SECRET_BYTES = 32;
 
     private final SecretKey key;
     private final UserDetailsService userDetailsService;
@@ -28,10 +32,12 @@ public class JwtService {
     private long refreshDays;
 
     public JwtService(
-            @Value("${security.jwt.secret}") String secret,
+            Environment environment,
             @Lazy UserDetailsService userDetailsService
     ) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        String secret = resolveJwtSecret(environment);
+        validateJwtSecret(secret);
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.userDetailsService = userDetailsService;
     }
 
@@ -101,5 +107,28 @@ public class JwtService {
             // Return the claims even when expired so we can read the subject safely when needed
             return e.getClaims();
         }
+    }
+
+    private static String resolveJwtSecret(Environment environment) {
+        try {
+            return environment.getProperty("security.jwt.secret");
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException(jwtSecretErrorMessage(), e);
+        }
+    }
+
+    private static void validateJwtSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(jwtSecretErrorMessage());
+        }
+
+        int secretBytes = secret.getBytes(StandardCharsets.UTF_8).length;
+        if (secretBytes < MIN_HS256_SECRET_BYTES) {
+            throw new IllegalStateException(jwtSecretErrorMessage());
+        }
+    }
+
+    private static String jwtSecretErrorMessage() {
+        return "JWT_SECRET must be set and contain at least 32 bytes for HS256 signing.";
     }
 }

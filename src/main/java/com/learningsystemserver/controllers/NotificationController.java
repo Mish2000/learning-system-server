@@ -37,7 +37,8 @@ public class NotificationController {
 
     @PostMapping("/markRead/{id}")
     public ResponseEntity<String> markAsRead(@PathVariable Long id) {
-        notificationService.markNotificationAsRead(id);
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        notificationService.markNotificationAsRead(id, username);
         return ResponseEntity.ok("Marked as read");
     }
 

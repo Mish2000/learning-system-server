@@ -11,6 +11,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -29,12 +30,13 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
 
-    @Value("${frontend.origin:http://localhost:5173}")
+    @Value("${app.frontend.origin:http://localhost:5173}")
     private String frontendOrigin;
 
     // honor cookie security flags (httpOnly, secure) consistently
@@ -115,10 +117,24 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        if ("*".equals(frontendOrigin)) {
+            throw new IllegalStateException("app.frontend.origin must not be '*' when CORS credentials are allowed");
+        }
+
         var cors = new CorsConfiguration();
         cors.setAllowedOrigins(List.of(frontendOrigin));
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cors.setAllowedHeaders(List.of("*"));
+        cors.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "X-XSRF-TOKEN",
+                "Cache-Control",
+                "Pragma",
+                "Last-Event-ID"
+        ));
         cors.setAllowCredentials(true);
         cors.setMaxAge(3600L);
 

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -20,9 +21,6 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class StreamingOllamaService {
 
-    private static final String OLLAMA_URL = "http://localhost:11434/api/generate";
-    private static final String MODEL_NAME = "aya-expanse:8b";
-
     private final OkHttpClient client = new OkHttpClient.Builder()
             .readTimeout(5, TimeUnit.MINUTES)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -30,6 +28,16 @@ public class StreamingOllamaService {
             .build();
 
     private final ObjectMapper mapper = new ObjectMapper();
+    private final String ollamaGenerateUrl;
+    private final String modelName;
+
+    public StreamingOllamaService(
+            @Value("${app.ollama.base-url}") String ollamaBaseUrl,
+            @Value("${app.ollama.model}") String modelName
+    ) {
+        this.ollamaGenerateUrl = buildOllamaUrl(ollamaBaseUrl, "/api/generate");
+        this.modelName = modelName;
+    }
 
     /**
      * Stream a solution from Ollama, enforcing the answer language
@@ -57,7 +65,7 @@ public class StreamingOllamaService {
 
             // Request body (keep original knobs + stop tokens)
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", MODEL_NAME);
+            requestBody.put("model", modelName);
             requestBody.put("prompt", finalPrompt);
             requestBody.put("stream", true);
             requestBody.put("temperature", 0.6);
@@ -77,7 +85,7 @@ public class StreamingOllamaService {
             }
 
             Request req = new Request.Builder()
-                    .url(OLLAMA_URL)
+                    .url(ollamaGenerateUrl)
                     .post(RequestBody.create(bodyString, MediaType.parse("application/json")))
                     .build();
 
@@ -115,6 +123,10 @@ public class StreamingOllamaService {
     }
 
     // ---- helpers ----
+
+    private static String buildOllamaUrl(String baseUrl, String path) {
+        return baseUrl.trim().replaceAll("/+$", "") + path;
+    }
 
     private String normalizeLang(String v) {
         if (v == null) return "he";

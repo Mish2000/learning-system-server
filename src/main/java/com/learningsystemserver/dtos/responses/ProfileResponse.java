@@ -13,6 +13,5 @@ public class ProfileResponse {
     private String profileImage;
     private Integer subDifficultyLevel;
     private String currentDifficulty;
-    private String newToken;
     private String role;
 }

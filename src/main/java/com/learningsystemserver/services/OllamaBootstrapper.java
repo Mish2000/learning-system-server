@@ -2,6 +2,7 @@ package com.learningsystemserver.services;
 
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -20,12 +21,25 @@ import java.net.http.HttpResponse;
 @Component
 public class OllamaBootstrapper implements ApplicationRunner {
 
-    private static final String OLLAMA_HEALTH_URL = "http://localhost:11434/api/tags";
+    private final String ollamaHealthUrl;
+    private final boolean ollamaAutoStart;
     private Process ollamaProcess;
+
+    public OllamaBootstrapper(
+            @Value("${app.ollama.base-url}") String ollamaBaseUrl,
+            @Value("${app.ollama.auto-start}") boolean ollamaAutoStart
+    ) {
+        this.ollamaHealthUrl = buildOllamaUrl(ollamaBaseUrl, "/api/tags");
+        this.ollamaAutoStart = ollamaAutoStart;
+    }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
         if (!isOllamaActive()) {
+            if (!ollamaAutoStart) {
+                log.info("Ollama is not active and auto-start is disabled.");
+                return;
+            }
             log.info("Ollama is not active. Attempting to start: `ollama serve` ...");
             startOllama();
             waitUntilOllamaActive(Duration.ofSeconds(30));
@@ -39,7 +53,7 @@ public class OllamaBootstrapper implements ApplicationRunner {
             HttpClient client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(2)).build();
             HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(OLLAMA_HEALTH_URL))
+                    .uri(URI.create(ollamaHealthUrl))
                     .timeout(Duration.ofSeconds(2))
                     .GET().build();
             HttpResponse<Void> resp = client.send(req, HttpResponse.BodyHandlers.discarding());
@@ -93,5 +107,9 @@ public class OllamaBootstrapper implements ApplicationRunner {
             ollamaProcess.destroy();
             log.info("Stopped child `ollama serve` process.");
         }
+    }
+
+    private static String buildOllamaUrl(String baseUrl, String path) {
+        return baseUrl.trim().replaceAll("/+$", "") + path;
     }
 }

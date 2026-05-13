@@ -4,7 +4,9 @@ import com.learningsystemserver.entities.DifficultyLevel;
 import com.learningsystemserver.entities.Notification;
 import com.learningsystemserver.repositories.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,11 +22,16 @@ public class NotificationService {
         return notificationRepository.findByRecipientUsername(username);
     }
 
-    public void markNotificationAsRead(Long id) {
-        Notification n = notificationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
-        n.setRead(true);
-        notificationRepository.save(n);
+    public void markNotificationAsRead(Long id, String username) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
+
+        if (!notification.getRecipientUsername().equals(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+
+        notification.setRead(true);
+        notificationRepository.save(notification);
     }
 
     public Notification createNotification(String message, String recipientUsername, String type) {
